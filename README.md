@@ -35,7 +35,7 @@ On Android:
 
 ### How to use
 - To compile SC:</br>
-Put folders with texture name and .png files inside it in the "In-Decompressed-SC" directory and execute "SC-Encode.py" script. After the process will be finished, your .sc files will appear in "Out-Compressed-SC" folder.
+Put folders with texture name and .png files inside them in the "In-Decompressed-SC" directory and execute "SC-Encode.py" script. After the process will be finished, your .sc files will appear in "Out-Compressed-SC" folder.
 - To decompile SC:</br>
 Put .sc files in the "In-Compressed-SC" directory and execute "SC-Decode.py" script. After the process will be finished, your .png files will appear in "Out-Decompressed-SC" folder.</br>
 
