@@ -71,9 +71,11 @@ for i in SubPath:
 	ImagesFileType = ' '.join(ImagesTypeList)
 	
 	if '1' in ImagesFileType:
-
-		os.system('python' + Specifier + ' ' + SystemPath + ' ' + ImagesToCompress + ' -p ' + ImagesPixelType + ' -c -header -o ' + OutCompressedScPath + OutName + '.sc')
+		
+		Splitter = ''
 		
 	else:
-	
-		os.system('python' + Specifier + ' ' + SystemPath + ' ' + ImagesToCompress + ' -p ' + ImagesPixelType + ' -c -header -s -o ' + OutCompressedScPath + OutName + '.sc')
+		
+		Splitter = '-s '
+
+	os.system('python' + Specifier + ' ' + SystemPath + ' ' + ImagesToCompress + ' -p ' + ImagesPixelType + ' -c -header ' + Splitter + '-o ' + OutCompressedScPath + OutName + '.sc')
