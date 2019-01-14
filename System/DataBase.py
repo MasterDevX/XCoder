@@ -1,4 +1,4 @@
-PixelType = {
+PixelTypeBS = {
 
 	'characters_tex.png': 0,
 	'debug_tex.png': 0,
@@ -18,7 +18,7 @@ PixelType = {
 
 }
 	
-FileType = {
+FileTypeBS = {
 
 	'characters_tex.png': 28,
 	'debug_tex.png': 1,
