@@ -1,4 +1,20 @@
 import os
+import platform
+
+sys.path.append('./System')
+
+from DataBase import Version
+
+SystemName = platform.system()
+sys.stdout.write('\x1b]2;XCoder | Version: ' + Version + ' | Developer: MasterDevX\x07')
+
+if SystemName == 'Windows':
+
+    os.system('cls')
+
+else:
+
+    os.system('clear')
 
 os.system('pip3 install pillow')
 
