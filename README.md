@@ -18,19 +18,19 @@ I wanna say "Thank You!" to these developers, because without their work XCoder 
 On Windows:
 - Download Python 3.5 or newer version from <a href="https://www.python.org/downloads/">official page</a>.
 - Install Python. While Installing, enable such parameters as "Add Python to PATH", "Install pip", "Install py launcher", "Associate files with Python" and "Add Python to environment variables".
-- Download and extract XCoder.
+- Download XCoder from <a href="https://github.com/MasterDevX/XCoder/releases">releases page</a> and extract it.
 - Execute "Init.py" file to install required modules and create workspace directories.</br>
 
 On Linux:
 - Open Terminal and install Python by executing following command:</br>
 ```sudo apt-get update && sudo apt-get install python3 python3-pip```
-- Download and extract XCoder.
+- Download XCoder from <a href="https://github.com/MasterDevX/XCoder/releases">releases page</a> and extract it.
 - Execute "Init.py" file to install required modules and create workspace directories.</br>
 
 On Android:
 - Download and install PyDroid app from <a href="https://play.google.com/store/apps/details?id=ru.iiec.pydroid3">Google Play</a>.
 - Open PyDroid and wait until Python installs.
-- Download and extract XCoder.
+- Download XCoder from <a href="https://github.com/MasterDevX/XCoder/releases">releases page</a> and extract it.
 - In PyDroid open and execute "Init.py" file to install required modules and create workspace directories.</br>
 
 ### How to use
