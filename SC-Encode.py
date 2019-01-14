@@ -4,17 +4,44 @@ import platform
 
 sys.path.append('./System')
 
-from DataBase import PixelType, FileType
-
 SystemName = platform.system()
 
 if SystemName == 'Windows':
 
 	Specifier = ''
+	
+	def Clear():
+		
+		os.system('cls')
 
 else:
 
 	Specifier = '3'
+	
+	def Clear():
+		
+		os.system('clear')
+		
+def GameSelect():
+	
+	global PixelType, FileType
+	
+	print('1 - Brawl Stars')
+	Game = input('Select Target Game: ')
+	
+	if Game == '1':
+		
+		from DataBase import PixelTypeBS as PixelType
+		from DataBase import FileTypeBS as FileType
+		
+	else:
+		
+		Clear()
+		GameSelect()
+		
+Clear()
+GameSelect()
+Clear()
 
 SystemPath = './System/Main.py'
 InDecompressedScPath = './In-Decompressed-SC/'
