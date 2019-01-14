@@ -7,11 +7,24 @@ import lzma
 import struct
 import random
 import binascii
+import platform
 
 sys.path.append('./System')
 
+from DataBase import Version
 from BytesWorker import *
 from PIL import Image
+
+SystemName = platform.system()
+sys.stdout.write('\x1b]2;XCoder | Version: ' + Version + ' | Developer: MasterDevX\x07')
+
+if SystemName == 'Windows':
+
+    os.system('cls')
+
+else:
+
+    os.system('clear')
 
 folder = "./In-Compressed-SC/"
 folder_export = "./Out-Decompressed-SC/"
