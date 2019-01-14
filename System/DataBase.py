@@ -1,3 +1,5 @@
+Version = 'v1.0.0'
+
 PixelTypeBS = {
 
 	'characters_tex.png': 0,
