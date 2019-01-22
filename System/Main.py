@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import os
 import sys
 import lzma
@@ -8,7 +6,6 @@ import argparse
 
 from PIL import Image
 from Writer import BinaryWriter
-
 
 class Packer(BinaryWriter):
 
@@ -171,7 +168,6 @@ class Packer(BinaryWriter):
             self.write_uint8(red)
 
     def compress_data(self):
-        # TODO: find good filters values to get exactly the same compressed files as the original one
         print('[*] Compressing texture')
 
         filters = [
