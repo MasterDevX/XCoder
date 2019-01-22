@@ -1,6 +1,3 @@
-# Original from https://github.com/royale-proxy/
-# Rewritten by Xset & MasterDevX
-
 import os
 import sys
 import lzma
