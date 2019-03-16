@@ -29,7 +29,6 @@ FileTypeBS = {
 	'loading_tex_.png': 28,
 	'loading_tex__.png': 28,
 	'loading_tex___.png': 28,
-	'loading_tex____.png': 28,
 	'supercell_id_tex.png': 1,
 	'ui_tex.png': 28,
 	'ui_tex_.png': 28,
