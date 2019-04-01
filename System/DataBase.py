@@ -21,6 +21,7 @@ PixelTypeBS = {
 	'ui_tex_.png': 0,
 	'ui_tex__.png': 0,
 	'ui_tex___.png': 0,
+	'ui_bgr_tex.png': 0,
 
 }
 	
@@ -45,5 +46,6 @@ FileTypeBS = {
 	'ui_tex_.png': 28,
 	'ui_tex__.png': 28,
 	'ui_tex___.png': 27,
+	'ui_bgr_tex.png': 28,
 
 }
