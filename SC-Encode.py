@@ -103,4 +103,9 @@ for i in SubPath:
 
 		Splitter = '-s '
 
+	if ConvEnable == '1':
+
+		print()
+
 	os.system('python' + Specifier + ' ' + SystemPath + ' ' + ImagesToCompress + ' -p ' + ImagesPixelType + ' -c -header ' + Splitter + '-o ' + OutCompressedScPath + OutName + '.sc')
+	print()
