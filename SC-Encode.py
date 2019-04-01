@@ -60,6 +60,7 @@ Clear()
 GameSelect()
 Clear()
 Conversion()
+Clear()
 
 SystemPath = './System/Main.py'
 InDecompressedScPath = './In-Decompressed-SC/'
