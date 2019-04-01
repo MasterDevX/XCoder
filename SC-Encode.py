@@ -77,6 +77,10 @@ for i in SubPath:
 	OutNameList = [i for i in (Images[0])]
 	DotIndex = OutNameList.index('.')
 	OutName = ''.join(OutNameList[:DotIndex])
+	
+	while OutName.endswith('_'):
+
+		OutName = OutName[:-1]
 
 	ImagesPixelList = []
 	ImagesTypeList = []
