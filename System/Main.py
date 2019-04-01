@@ -28,7 +28,7 @@ class Packer(BinaryWriter):
                                     })
 
         else:
-            print('[*] Unsupported pixelformat ({}) ! '.format(pixelFormat))
+            print('[ERROR] Unsupported pixelformat ({})! '.format(pixelFormat))
             sys.exit()
 
     def pack(self):
@@ -95,7 +95,7 @@ class Packer(BinaryWriter):
         imgl = image.load()
         pixels = []
 
-        print('[*] Splitting texture')
+        print('[INFO] Splitting texture...')
 
         for l in range(imageHeight // 32):
             for k in range(imageWidth // 32):
@@ -117,7 +117,7 @@ class Packer(BinaryWriter):
                 pixels.append(imgl[h + (imageWidth - (imageWidth % 32)), j + (imageHeight - (imageHeight % 32))])
 
         image.putdata(pixels)
-        print('[*] Splitting done !')
+        print('[INFO] Splitting done!')
 
     def write_pixel(self, pixelFormat, colors):
         red   = colors[0]
@@ -168,7 +168,7 @@ class Packer(BinaryWriter):
             self.write_uint8(red)
 
     def compress_data(self):
-        print('[*] Compressing texture')
+        print('[INFO] Compressing texture...')
 
         filters = [
                    {
@@ -195,11 +195,11 @@ class Packer(BinaryWriter):
             self.write_uint32(len(fileMD5), 'big')
             self.write(fileMD5)
 
-            print('[*] Header wrote !')
+            print('[INFO] Header wrote!')
 
         self.write(compressed)
 
-        print('[*] Compression done !')
+        print('[INFO] Compression done!')
 
 
 if __name__ == "__main__":
@@ -224,17 +224,17 @@ if __name__ == "__main__":
                         scPacker.load_image(file, pixelFormat)
 
                     else:
-                        print('[*] {} doesn\'t exists !'.format(file))
+                        print('[ERROR] {} doesn\'t exist!'.format(file))
                         sys.exit()
 
                 else:
-                    print('[*] Only .png are supported !')
+                    print('[ERROR] Only .png files are supported!')
                     sys.exit()
 
             scPacker.pack()
 
         else:
-            print('[*] Files count and pixelformats count don\'t match !')
+            print('[ERROR] Files count and pixelformats count don\'t match!')
 
     else:
-        print('[*] PixelFormat args is empty !')
+        print('[ERROR] PixelFormat args are empty!')
