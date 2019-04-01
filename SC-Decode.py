@@ -143,6 +143,7 @@ for file in files:
 			ScNameList.append(i)
 		DotIndex = ScNameList.index('.')
 		CurrentSubPath = ''.join(ScNameList[:DotIndex]) + '/'
-		shutil.rmtree(folder_export + CurrentSubPath)
+		if os.path.isdir(folder_export + CurrentSubPath) == True:
+			shutil.rmtree(folder_export + CurrentSubPath)
 		os.mkdir(folder_export + CurrentSubPath)
 		decompileSC(folder + file)
