@@ -72,12 +72,14 @@ for i in SubPath:
 	CurrentSubPath = i + '/'
 	ImagesPath = InDecompressedScPath + '/' + i
 	Images = [i for i in os.listdir(ImagesPath)]
+	Images.sort()
 	ImagesToCompressPath = [InDecompressedScPath + CurrentSubPath + i for i in Images]
+	ImagesToCompressPath.sort()
 	ImagesToCompress = ' '.join(ImagesToCompressPath)
 	OutNameList = [i for i in (Images[0])]
 	DotIndex = OutNameList.index('.')
 	OutName = ''.join(OutNameList[:DotIndex])
-	
+
 	while OutName.endswith('_'):
 
 		OutName = OutName[:-1]
