@@ -58,7 +58,7 @@ def decompileSC(fileName):
         if data[0] != 93:
             data = data[26:]
 
-        xbytes = b'\xff\xff\xff\xff\xff\xff\xff\xff'
+        xbytes = b'\xff' * 8
 
         data = data[0:5] + xbytes + data[9:]
         decompressed = lzma.LZMADecompressor().decompress(data)
