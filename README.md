@@ -13,6 +13,7 @@ I wanna say "Thank You!" to these developers, because without their work XCoder 
 - Brawl Stars support.
 - Multiplatform support (working on Windows, Linux and Android).
 - SC compilation / decompilation.
+- 32Bit image auto-conversion.
 
 ### How to install
 On Windows:
