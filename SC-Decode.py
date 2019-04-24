@@ -86,7 +86,11 @@ def decompileSC(fileName):
             else:
                 raise Exception("Unknown pixel type: " + subType)
 
-            _("About: fileName %s, fileType %s, fileSize: %s, subType: %s, width: %s, height: %s" % (fileName, fileType, fileSize, subType, width, height))
+            xfilename = fileName[::-1]
+            xfilename = xfilename[:xfilename.index('/')]
+            xfilename = xfilename[::-1]
+
+            _("About: FileName: %s, FileType: %s, FileSize: %s, SubType: %s, Width: %s, Height: %s" % (xfilename, fileType, fileSize, subType, width, height))
             _("Creating picture...")
 
             img = Image.new("RGBA", (width, height))
