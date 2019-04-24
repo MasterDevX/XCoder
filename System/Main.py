@@ -55,7 +55,11 @@ class Packer(BinaryWriter):
             imageHeight = image['Image'].height
             texureSize = imageWidth * imageHeight * pixelSize + 5
 
-            print('[INFO] Packing {}, width: {}, height: {}, pixelformat: {}'.format(image['Path'], imageHeight, imageWidth, pixelFormat))
+            ximage = image['Path'][::-1]
+            ximage = ximage[:ximage.index('/')]
+            ximage = ximage[::-1]
+
+            print('[INFO] Packing {}, Width: {}, Height: {}, PixelFormat: {}'.format(ximage, imageHeight, imageWidth, pixelFormat))
 
             # Texture header
             self.write_uint8(fileType)
