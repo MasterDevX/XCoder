@@ -13,19 +13,39 @@ from DataBase import Version
 from BytesWorker import *
 from PIL import Image
 
+folder = "./In-Compressed-SC/"
+folder_export = "./Out-Decompressed-SC/"
 SystemName = platform.system()
 sys.stdout.write('\x1b]2;XCoder | Version: ' + Version + ' | Developer: MasterDevX\x07')
 
 if SystemName == 'Windows':
 
-    os.system('cls')
+	def Clear():
+
+		os.system('cls')
 
 else:
 
-    os.system('clear')
+	def Clear():
 
-folder = "./In-Compressed-SC/"
-folder_export = "./Out-Decompressed-SC/"
+		os.system('clear')
+
+def GameSelect():
+
+    global Game
+
+    print('1 - Brawl Stars')
+    print('2 - Clash Royale')
+    Game = input('Select Target Game: ')
+
+    if Game != '1' and Game != '2':
+
+        Clear()
+        GameSelect()
+
+Clear()
+GameSelect()
+Clear()
 
 def _(message):
     print("[INFO] " + message)
@@ -59,8 +79,12 @@ def decompileSC(fileName):
             data = data[26:]
 
         xbytes = b'\xff' * 8
+        ybytes = b'\x00' * 4
 
-        data = data[0:5] + xbytes + data[9:]
+        if Game == '1':
+            data = data[0:5] + xbytes + data[9:]
+        if Game == '2':
+            data = data[0:9] + ybytes + data[9:]
         decompressed = lzma.LZMADecompressor().decompress(data)
 
         i = 0
