@@ -1,4 +1,4 @@
-Version = 'v1.1.2'
+Version = 'v1.1.3'
 
 PixelTypeBS = {
 
@@ -8,6 +8,7 @@ PixelTypeBS = {
 	'background_basic_tex_.png': 6,
 	'background_golden_week_tex.png': 0,
 	'background_golden_week_tex_.png': 0,
+	'background_retropolis_tex.png': 0,
 	'characters_tex.png': 0,
 	'debug_tex.png': 0,
 	'effects_brawler_tex.png': 0,
@@ -35,6 +36,7 @@ FileTypeBS = {
 	'background_basic_tex_.png': 1,
 	'background_golden_week_tex.png': 1,
 	'background_golden_week_tex_.png': 1,
+	'background_retropolis_tex.png': 1,
 	'characters_tex.png': 28,
 	'debug_tex.png': 1,
 	'effects_brawler_tex.png': 28,
