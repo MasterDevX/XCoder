@@ -13,16 +13,7 @@ def checkos():
 	global sysname
 
 	sysname = platform.system()
-
-	if sysname != 'Windows' and sysname != 'Linux':
-
-		print('Unsupported OS.')
-		input('Press Enter to exit: ')
-		sys.exit()
-
-	else:
-
-		getreq()
+	getreq()
 
 def getreq():
 
