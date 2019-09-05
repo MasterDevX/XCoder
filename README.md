@@ -7,6 +7,7 @@ This tool is based on:
 - <a href="https://github.com/Galaxy1036/scPacker">scPacker</a>, Developer: <a href="https://github.com/Galaxy1036">Galaxy1036</a></br>
 
 I wanna say "Thank You!" to these developers, because without their work XCoder wouldn't have been released!</br>
+Special thanks to <a href="https://github.com/spiky-s">spiky-s</a> for regular DB updates :)
 
 ### Features:
 - Easy to use.
@@ -43,4 +44,5 @@ Put .sc files in the "In-Compressed-SC" directory and execute "SC-Decode.py" scr
 ### TODO:
 - Clash of Clans support.
 - Clash Royale support.
+- Rush Wars support.
 - CSV compilation / decompilation.
