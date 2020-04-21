@@ -2,6 +2,8 @@ Version = 'v1.1.3'
 
 PixelTypeBS = {
 
+	'background_psg_tex.png': 0,
+	'background_psg_tex_.png': 6,
 	'background_lny_20_tex.png': 0,
 	'background_lny_20_tex_.png': 0,
 	'background_lny_tex.png': 0,
@@ -33,6 +35,8 @@ PixelTypeBS = {
 
 FileTypeBS = {
 
+	'background_psg_tex.png': 1,
+	'background_psg_tex_.png': 1,
 	'background_lny_20_tex.png': 1,
 	'background_lny_20_tex_.png': 1,
 	'background_lny_tex.png': 1,
