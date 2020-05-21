@@ -88,9 +88,24 @@ for i in SubPath:
 	ImagesTypeList = []
 
 	for i in Images:
-
-		ImagesPixelList.append(str(PixelType[i]))
-		ImagesTypeList.append(str(FileType[i]))
+		try:
+			ImagesPixelList.append(str(PixelType[i]))
+			ImagesTypeList.append(str(FileType[i]))
+		except KeyError:
+			print('This .png name is not included in the database. Its either because the database isnt updated yet or your png files are not named properly')                
+			answer_keyError = input("IMPORTANT: \nDo you still wish to continue? The compressed .sc file may be broken\n(y/n) ")
+			if answer_keyError == "y":
+				if "background" and "_tex.png" in i:
+					ImagesPixelList.append("0")
+					ImagesTypeList.append("1")
+				elif "background" and "_tex_.png" in i: #for second background image with _
+					ImagesPixelList.append("6")
+					ImagesTypeList.append("1")
+				else:
+					ImagesPixelList.append("0")
+					ImagesTypeList.append("28")
+			else:
+				sys.exit()
 
 		if ConvEnable == '1':
 
