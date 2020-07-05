@@ -152,7 +152,7 @@ def sc1_encode():
             print()
 
 
-v = '2.0.0-prerelease'
+v = Version
 
 if __name__ == '__main__':
     if os.path.isfile(cfg_path):

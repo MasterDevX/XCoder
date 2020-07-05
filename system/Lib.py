@@ -14,7 +14,7 @@ try:
     from PIL import Image, ImageDraw
 except: pass
 
-Version = '2.0.0 beta'
+Version = '2.0.1-prerelease'
 
 lzham_path = 'system\\lzham'
 
@@ -307,14 +307,15 @@ def decompileSC(fileName, CurrentSubPath, to_memory=False, folder=None, folder_e
                 uselzham = True
             else:
                 try:
-                    from lzma import LZMADecompressor as d
-                    d = d().decompress
+                    from lzma import LZMADecompressor as D
+                    def d(data):
+                    	return D().decompress(data)
                 except:
                     return info(string.not_installed2 % 'LZMA')
                 try:
                     data = d(data[:9] + bytes(4) + data[9:])
                 except:
-                    data = d(data[:5] + b'\xff' * 8 + data[9:])
+                    data = d(data[:5] + bytes(255 for i in range(8)) + data[9:])
                 info(string.detected_comp % 'LZMA')
                 
 
@@ -510,8 +511,9 @@ def decodeSC(fileName, sheetimage, check_lowres=True):
             uselzham = True
         else:
             try:
-                from lzma import LZMADecompressor as d
-                d = d().decompress
+                from lzma import LZMADecompressor as D
+                def d(data):
+                    return D().decompress(data)
             except:
                 return info(string.not_installed2 % 'LZMA')
             try:
