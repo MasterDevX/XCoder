@@ -1,6 +1,7 @@
 from system.lib.console import Console
 from system.lib.logger import Logger
 
+logger = Logger('en-EU')
 try:
     import io
     import os
@@ -16,7 +17,6 @@ try:
     import colorama
     from PIL import Image, ImageDraw
 except Exception as e:
-    logger = Logger()
     logger.write(e)
 
 import colorama
@@ -32,7 +32,17 @@ is_windows = platform.system() == 'Windows'
 nul = f' > {"nul" if is_windows else "/dev/null"} 2>&1'
 
 locale = Locale()
-config = json.load(open('./system/config.json'))
+config_path = './system/config.json'
+
+if os.path.isfile(config_path):
+    try:
+        config = json.load(open(config_path))
+    except Exception as e:
+        logger.write(e)
+        config = {'inited': False, 'version': version, 'lang': 'en-EU'}
+else:
+    config = {'inited': False, 'version': version, 'lang': 'en-EU'}
+json.dump(config, open(config_path, 'w'))
 locale.load_from(config['lang'])
 
 
@@ -62,7 +72,7 @@ else:
 
 
 def load_locale():
-    config.update(json.load(open('./system/config.json')))
+    config.update(json.load(open(config_path)))
     locale.load_from(config['lang'])
 
 
