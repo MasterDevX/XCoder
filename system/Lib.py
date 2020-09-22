@@ -1,3 +1,6 @@
+from system.lib.console import Console
+from system.lib.logger import Logger
+
 try:
     import io
     import os
@@ -12,24 +15,38 @@ try:
     import subprocess
     import colorama
     from PIL import Image, ImageDraw
-except: pass
+except Exception as e:
+    logger = Logger()
+    logger.write(e)
 
-Version = '2.0.1-prerelease'
+import colorama
+import shutil
 
-lzham_path = 'system\\lzham'
+from system.localization import Locale
 
-isWin = platform.system() == "Windows"
 
-nul = f" > {'nul' if isWin else '/dev/null'} 2>&1"
+version = '2.0.1-prerelease'
+lzham_path = r'system\lzham'
 
-if isWin:
+is_windows = platform.system() == 'Windows'
+nul = f' > {"nul" if is_windows else "/dev/null"} 2>&1'
 
-    try: colorama.init()
-    except: pass
+locale = Locale()
+config = json.load(open('./system/config.json'))
+locale.load_from(config['lang'])
+
+
+if is_windows:
+    try:
+        colorama.init()
+    except:
+        pass
 
     import ctypes
+
     Title = ctypes.windll.kernel32.SetConsoleTitleW
     del ctypes
+
 
     def Clear():
         os.system('cls')
@@ -39,48 +56,59 @@ else:
     def Title(message):
         sys.stdout.write(f"\x1b]2;{message}\x07")
 
+
     def Clear():
         os.system('clear')
 
-def locale(lang):
-    global string
-    from system.strings import string
-    string = string[lang]
+
+def load_locale():
+    config.update(json.load(open('./system/config.json')))
+    locale.load_from(config['lang'])
 
 
-def info(message):
-    print(f"[INFO] {message}")
+def specialize_print(console_width, first_string, second_string):
+    print(first_string + (' ' * (console_width // 2 - len(first_string)) + ': ' + second_string))
 
-def progressbar(message, current, total, start = 0, end = 100):
-    sys.stdout.write(f"\r[{((current + 1) * end + start) // total + start}%] {message}")
 
-def percent(current, total):
-    return (current + 1) * 100 // total
+def colored_print(text, color=None):
+    if color is None:
+        color = colorama.Back.GREEN
+    return print(color + colorama.Fore.BLACK + text + ' ' * (10 - len(text)) + colorama.Style.RESET_ALL)
 
-def int_qu(a):
-    try:
-        return int(input(f"[????] {a} "))
-    except:
-        return int_qu(a)
 
-def question(message):
-    x = input(f"[????] {message} [y/n] ").lower()
-    return "ny".index(x) if x in ("y", "n") else question(message)
+def welcome_text():
+    load_locale()
 
-def err_text(message):
-    print(colorama.Fore.RED + message + colorama.Style.RESET_ALL)
+    conwidth = shutil.get_terminal_size().columns
+    print(
+        (
+                colorama.Back.BLACK + colorama.Fore.GREEN +
+                locale.xcoder % config['version'] +
+                colorama.Style.RESET_ALL
+        ).center(conwidth + 14)
+    )
+    print('github.com/MasterDevX/XCoder'.center(conwidth))
+    print(conwidth * '-')
 
-def done_text(message):
-    print(colorama.Fore.GREEN + message + colorama.Style.RESET_ALL)
+    colored_print(locale.sc)
+    specialize_print(conwidth, ' 1   ' + locale.dsc, locale.dsc_desc)
+    specialize_print(conwidth, ' 2   ' + locale.esc, locale.esc_desc)
+    specialize_print(conwidth, ' 3   ' + locale.d1sc, locale.experimental)
+    specialize_print(conwidth, ' 4   ' + locale.e1sc, locale.experimental)
+    print(conwidth * '-')
 
-def write_log(err):
-    if not os.path.isfile('log.txt'):
-        mode = 'w'
-    else:
-        mode = 'a'
-    log = open('log.txt', mode, encoding='utf-8')
-    log.write(string.got_error % (time.strftime('%d.%m.%Y %H:%M:%S'), err))
-    log.close()
+    colored_print(locale.oth)
+    specialize_print(conwidth, ' 101 ' + locale.check_update, locale.version % config['version'])
+    specialize_print(conwidth, ' 102 ' + locale.reinit, locale.reinit_desc)
+    specialize_print(conwidth, ' 103 ' + locale.relang, locale.relang_desc % config['lang'])
+    specialize_print(conwidth, ' 104 ' + locale.clean_dirs, locale.clean_dirs_desc)
+    print(' 105 ' + locale.exit)
+    print(conwidth * '-')
+
+    choice = input(locale.choice)
+    print(conwidth * '-')
+    return choice
+
 
 def pixelsize(type):
     if type in (0, 1):
@@ -89,8 +117,9 @@ def pixelsize(type):
         return 2
     if type in (10,):
         return 1
-    raise Exception(string.unk_type % type)
-    
+    raise Exception(locale.unk_type % type)
+
+
 def format(type):
     if type in range(4):
         return 'RGBA'
@@ -100,83 +129,85 @@ def format(type):
         return 'LA'
     if type in (10,):
         return 'L'
-    raise Exception(string.unk_type % type)
+    raise Exception(locale.unk_type % type)
+
 
 def bytes2rgba(data, type, img, pix):
-
+    read_pixel = None
     if type in (0, 1):
-        def readpixel():
+        def read_pixel():
             return struct.unpack('4B', data.read(4))
     elif type == 2:
-        def readpixel():
+        def read_pixel():
             p, = struct.unpack('<H', data.read(2))
-            return ((p >> 12 & 15) << 4, (p >> 8 & 15) << 4, (p >> 4 & 15) << 4, (p >> 0 & 15) << 4)
+            return (p >> 12 & 15) << 4, (p >> 8 & 15) << 4, (p >> 4 & 15) << 4, (p >> 0 & 15) << 4
     elif type == 3:
-        def readpixel():
+        def read_pixel():
             p, = struct.unpack('<H', data.read(2))
-            return ((p >> 11 & 31) << 3, (p >> 6 & 31) << 3, (p >> 1 & 31) << 3, (p & 255) << 7)
+            return (p >> 11 & 31) << 3, (p >> 6 & 31) << 3, (p >> 1 & 31) << 3, (p & 255) << 7
     elif type == 4:
-        def readpixel():
+        def read_pixel():
             p, = struct.unpack("<H", data.read(2))
-            return ((p >> 11 & 31) << 3, (p >> 5 & 63) << 2, (p & 31) << 3)
+            return (p >> 11 & 31) << 3, (p >> 5 & 63) << 2, (p & 31) << 3
     elif type == 6:
-        def readpixel():
+        def read_pixel():
             return struct.unpack("2B", data.read(2))[::-1]
     elif type == 10:
-        def readpixel():
+        def read_pixel():
             return struct.unpack("B", data.read(1))
 
-    width, height = img.size
-    point = -1
-    for y in range(height):
-        for x in range(width):
-            pix.append(readpixel())
+    if read_pixel is not None:
+        width, height = img.size
+        point = -1
+        for y in range(height):
+            for x in range(width):
+                pix.append(read_pixel())
 
-        curr = percent(y, height)
-        if curr > point:
-            progressbar(string.crt_pic, y, height)
-            point = curr
+            curr = Console.percent(y, height)
+            if curr > point:
+                Console.progress_bar(locale.crt_pic, y, height)
+                point = curr
 
-    img.putdata(pix)
+        img.putdata(pix)
 
 
 def rgba2bytes(sc, img, type):
-
-
+    write_pixel = None
     if type in (0, 1):
-        def writepixel(pixel):
+        def write_pixel(pixel):
             return struct.pack('4B', *pixel)
     if type == 2:
-        def writepixel(pixel):
+        def write_pixel(pixel):
             r, g, b, a = pixel
             return struct.pack('<H', a >> 4 | b >> 4 << 4 | g >> 4 << 8 | r >> 4 << 12)
     if type == 3:
-        def writepixel(pixel):
+        def write_pixel(pixel):
             r, g, b, a = pixel
             return struct.pack('<H', a >> 7 | b >> 3 << 1 | g >> 3 << 6 | r >> 3 << 11)
     if type == 4:
-        def writepixel(pixel):
+        def write_pixel(pixel):
             r, g, b = pixel
             return struct.pack('<H', b >> 3 | g >> 2 << 5 | r >> 3 << 11)
     if type == 6:
-        def writepixel(pixel):
+        def write_pixel(pixel):
             return struct.pack('2B', *pixel[::-1])
     if type == 10:
-        def writepixel(pixel):
+        def write_pixel(pixel):
             return struct.pack('B', *pixel)
 
-    width, height = img.size
+    if write_pixel is not None:
+        width, height = img.size
 
-    pix = img.load()
-    point = -1
-    for y in range(height):
-        for x in range(width):
-            sc.write(writepixel(pix[x, y]))
+        pix = img.load()
+        point = -1
+        for y in range(height):
+            for x in range(width):
+                sc.write(write_pixel(pix[x, y]))
 
-        curr = percent(y, height)
-        if curr > point:
-            progressbar(string.writing_pic, y, height)
-            point = curr
+            curr = Console.percent(y, height)
+            if curr > point:
+                Console.progress_bar(locale.writing_pic, y, height)
+                point = curr
 
 
 def join_image(img, p):
@@ -200,7 +231,7 @@ def join_image(img, p):
             for h in range(_w % a):
                 imgl[h + (_w - _w % a), j + l * a] = p[x]
                 x += 1
-        progressbar(string.join_pic, l, _ha)
+        Console.progress_bar(locale.join_pic, l, _ha)
 
     for k in range(_wa):
         for j in range(_h % a):
@@ -212,18 +243,18 @@ def join_image(img, p):
         for h in range(_w % a):
             imgl[h + (_w - _w % a), j + (_h - _h % a)] = p[x]
             x += 1
-    progressbar(string.join_pic, l, _ha)
+
 
 def split_image(img):
     p = []
     _w, _h = img.size
     imgl = img.load()
     a = 32
-    
+
     _ha = _h // a
     _wa = _w // a
     ha = _h % a
-    
+
     for l in range(_ha):
         for k in range(_wa):
             for j in range(a):
@@ -233,7 +264,7 @@ def split_image(img):
         for j in range(a):
             for h in range(_w % a):
                 p.append(imgl[h + (_w - (_w % a)), j + (l * a)])
-        progressbar(string.split_pic, l, _ha)
+        Console.progress_bar(locale.split_pic, l, _ha)
 
     for k in range(_w // a):
         for j in range(int(_h % a)):
@@ -244,7 +275,7 @@ def split_image(img):
         for h in range(_w % a):
             p.append(imgl[h + (_w - (_w % a)), j + (_h - (_h % a))])
     img.putdata(p)
-    progressbar(string.split_pic, l, _ha)
+
 
 class Reader:
     def __init__(self, data):
@@ -260,7 +291,7 @@ class Reader:
 
     @property
     def int16(self):
-        return int.from_bytes(self.stream.read(2), 'little', signed = True)
+        return int.from_bytes(self.stream.read(2), 'little', signed=True)
 
     @property
     def uint32(self):
@@ -268,17 +299,18 @@ class Reader:
 
     @property
     def int32(self):
-        return int.from_bytes(self.stream.read(4), 'little', signed = True)
+        return int.from_bytes(self.stream.read(4), 'little', signed=True)
 
     def string(self, length=1):
         return self.stream.read(int.from_bytes(self.stream.read(length), 'little')).decode()
+
 
 def decompileSC(fileName, CurrentSubPath, to_memory=False, folder=None, folder_export=None):
     pngs = []
     picCount = 0
     scdata = io.BytesIO()
-    
-    info(string.collecting_inf)
+
+    Console.info(locale.collecting_inf)
     with open(fileName, "rb") as fh:
         start = fh.read(6)
         if start == b'SC\x00\x00\x00\x01':
@@ -292,82 +324,80 @@ def decompileSC(fileName, CurrentSubPath, to_memory=False, folder=None, folder_e
                 try:
                     from lzham import decompress as d
                 except:
-                    if not isWin:
-                        return info(string.not_installed2 % 'LZHAM')
+                    if not is_windows:
+                        return Console.info(locale.not_installed2 % 'LZHAM')
                     with open('temp.sc', 'wb') as sc:
                         sc.write(b'LZH\x30' + data[4:9] + bytes(4) + data[9:])
                     if os.system(f'{lzham_path} -d{data[4]} -c d temp.sc _temp.sc{nul}'):
-                        raise Exception(string.decomp_err)
+                        raise Exception(locale.decompression_error)
                     data = open('_temp.sc', 'rb').read()
                     [os.remove(i) for i in ('temp.sc', '_temp.sc')]
                 else:
                     dict_size, data_size = struct.unpack("<BI", data[4:9])
                     data = d(data[9:], data_size, {"dict_size_log2": dict_size})
-                info(string.detected_comp % 'LZHAM')
+                Console.info(locale.detected_comp % 'LZHAM')
                 uselzham = True
             else:
                 try:
                     from lzma import LZMADecompressor as D
                     def d(data):
-                    	return D().decompress(data)
+                        return D().decompress(data)
                 except:
-                    return info(string.not_installed2 % 'LZMA')
+                    return Console.info(locale.not_installed2 % 'LZMA')
                 try:
                     data = d(data[:9] + bytes(4) + data[9:])
                 except:
                     data = d(data[:5] + bytes(255 for i in range(8)) + data[9:])
-                info(string.detected_comp % 'LZMA')
-                
+                Console.info(locale.detected_comp % 'LZMA')
+
 
         except:
-            info(string.try_error)
+            Console.info(locale.try_error)
 
         data = io.BytesIO(data)
         print()
 
         while 1:
-            
+
             temp = data.read(5)
             if temp == bytes(5):
                 data = struct.pack("4s?B", b"XCOD", uselzham, picCount) + scdata.getvalue()
                 if not to_memory:
-                    with open(f"{folder_export}{CurrentSubPath}{baseName.rstrip('_')}.xcod", "wb") as xc:
+                    with open(f"{folder_export}{CurrentSubPath}{base_name.rstrip('_')}.xcod", "wb") as xc:
                         xc.write(data)
                     data = None
-                
+
                 return pngs, data
 
-            fileType, fileSize, subType, width, height = struct.unpack("<BIBHH", temp + data.read(5))
-            pixelSize = pixelsize(subType)
+            file_type, file_size, sub_type, width, height = struct.unpack("<BIBHH", temp + data.read(5))
 
+            base_name = os.path.basename(fileName)[::-1].split('.', 1)[1][::-1] + '_' * picCount
+            Console.info(locale.about_sc % (base_name, file_type, file_size, sub_type, width, height))
 
-            baseName = os.path.basename(fileName)[::-1].split('.', 1)[1][::-1] + '_' * picCount
-            info(string.about_sc % (baseName, fileType, fileSize, subType, width, height))
-
-            img = Image.new(format(subType), (width, height))
+            img = Image.new(format(sub_type), (width, height))
             pixels = []
 
-            bytes2rgba(data, subType, img, pixels)
-            
+            bytes2rgba(data, sub_type, img, pixels)
+
             print()
-            
-            if fileType in (27, 28):
+
+            if file_type in (27, 28):
                 join_image(img, pixels)
                 print()
-                
+
             if to_memory:
                 pngs.append(img)
             else:
-                info(string.png_save)
+                Console.info(locale.png_save)
 
-                img.save(f"{folder_export}{CurrentSubPath}{baseName}.png")
-                info(string.saved)
+                img.save(f"{folder_export}{CurrentSubPath}{base_name}.png")
+                Console.info(locale.saved)
             picCount += 1
-            scdata.write(struct.pack(">BBHH", fileType, subType, width, height))
+            scdata.write(struct.pack(">BBHH", file_type, sub_type, width, height))
             print()
 
 
-def compileSC(_dir, from_memory = [], imgdata = None, folder_export = None):
+def compileSC(_dir, from_memory=None, imgdata=None, folder_export=None):
     name = _dir.split('/')[-2]
     if from_memory:
         files = from_memory
@@ -376,13 +406,15 @@ def compileSC(_dir, from_memory = [], imgdata = None, folder_export = None):
         [files.append(i) if i.endswith(".png") else None for i in os.listdir(_dir)]
         files.sort()
         if not files:
-            return info(string.dir_empty % _dir.split('/')[-2])
+            return Console.info(locale.dir_empty % _dir.split('/')[-2])
         files = [Image.open(f'{_dir}{i}') for i in files]
 
     exe = False
-    info(string.collecting_inf)
+    Console.info(locale.collecting_inf)
     sc = io.BytesIO()
-    
+
+    hasxcod = False
+    uselzham = False
     if from_memory:
         uselzham = imgdata['uselzham']
     else:
@@ -393,31 +425,28 @@ def compileSC(_dir, from_memory = [], imgdata = None, folder_export = None):
             scdata.read(1)
             hasxcod = True
         except:
-            info(string.not_xcod)
-            info(string.standart_types)
-            hasxcod = False
-            uselzham = False
-        
+            Console.info(locale.not_xcod)
+            Console.info(locale.default_types)
 
     if uselzham:
         try:
-           import lzham
+            import lzham
         except:
-            if not isWin:
-                return info(string.not_installed2 % 'LZHAM')
+            if not is_windows:
+                return Console.info(locale.not_installed2 % 'LZHAM')
             exe = True
     else:
         try:
             import lzma
         except:
-            if not isWin:
-                return info(string.not_installed2 % 'LZMA')
+            if not is_windows:
+                return Console.info(locale.not_installed2 % 'LZMA')
             exe = True
-        
+
     for picCount in range(len(files)):
         print()
         img = files[picCount]
-        
+
         if from_memory:
             fileType = imgdata['data'][picCount]['fileType']
             subType = imgdata['data'][picCount]['subType']
@@ -426,9 +455,9 @@ def compileSC(_dir, from_memory = [], imgdata = None, folder_export = None):
                 fileType, subType, width, height = struct.unpack(">BBHH", scdata.read(6))
 
                 if (width, height) != img.size:
-                    info(string.illegal_size % (width, height, img.width, img.height))
-                    if question(string.resize_qu):
-                        info(string.resizing)
+                    Console.info(locale.illegal_size % (width, height, img.width, img.height))
+                    if Console.question(locale.resize_qu):
+                        Console.info(locale.resizing)
                         img = img.resize((width, height), Image.ANTIALIAS)
             else:
                 fileType, subType = 1, 0
@@ -439,7 +468,7 @@ def compileSC(_dir, from_memory = [], imgdata = None, folder_export = None):
 
         fileSize = width * height * pixelSize + 5
 
-        info(string.about_sc % (name + '_' * picCount, fileType, fileSize, subType, width, height))
+        Console.info(locale.about_sc % (name + '_' * picCount, fileType, fileSize, subType, width, height))
 
         sc.write(struct.pack("<BIBHH", fileType, fileSize, subType, width, height))
 
@@ -455,15 +484,15 @@ def compileSC(_dir, from_memory = [], imgdata = None, folder_export = None):
     print()
     with open(f"{folder_export}{name}.sc", "wb") as fout:
         fout.write(struct.pack(">2sII16s", b'SC', 1, 16, hashlib.md5(sc).digest()))
-        info(string.header_done)
+        Console.info(locale.header_done)
         if uselzham:
-            info(string.comp_with % 'LZHAM')
+            Console.info(locale.comp_with % 'LZHAM')
             fout.write(struct.pack("<4sBI", b'SCLZ', 18, len(sc)))
             if exe:
                 with open('temp.sc', 'wb') as s:
                     s.write(sc)
                 if os.system(f'{lzham_path} -d18 -c c temp.sc _temp.sc{nul}'):
-                    raise Exception(string.comp_err)
+                    raise Exception(locale.compession_error)
                 with open('_temp.sc', 'rb') as s:
                     s.read(13)
                     compressed = s.read()
@@ -474,12 +503,14 @@ def compileSC(_dir, from_memory = [], imgdata = None, folder_export = None):
 
             fout.write(compressed)
         else:
-            info(string.comp_with % 'LZMA')
+            Console.info(locale.comp_with % 'LZMA')
             l = struct.pack("<I", len(sc))
-            sc = lzma.compress(sc, format=lzma.FORMAT_ALONE, filters=[{"id": lzma.FILTER_LZMA1, "dict_size": 0x40000, "lc": 3, "lp": 0, "pb": 2, "mode": lzma.MODE_NORMAL}])
+            sc = lzma.compress(sc, format=lzma.FORMAT_ALONE, filters=[
+                {"id": lzma.FILTER_LZMA1, "dict_size": 0x40000, "lc": 3, "lp": 0, "pb": 2, "mode": lzma.MODE_NORMAL}])
             fout.write(sc[:5] + l + sc[13:])
-        info(string.comp_done)
+        Console.info(locale.comp_done)
         print()
+
 
 def decodeSC(fileName, sheetimage, check_lowres=True):
     fh = open(fileName, 'rb')
@@ -489,7 +520,7 @@ def decodeSC(fileName, sheetimage, check_lowres=True):
         start = b''
     data = start + fh.read()
 
-    info(string.collecting_inf)
+    Console.info(locale.collecting_inf)
 
     try:
         uselzham = False
@@ -499,15 +530,15 @@ def decodeSC(fileName, sheetimage, check_lowres=True):
                 dict_size, data_size = struct.unpack("<BI", data[4:9])
                 data = d(data[9:], data_size, {"dict_size_log2": dict_size})
             except:
-                if not isWin:
-                    return info(string.not_installed2 % 'LZHAM')
+                if not is_windows:
+                    return Console.info(locale.not_installed2 % 'LZHAM')
                 with open('temp.sc', 'wb') as sc:
                     sc.write(b'LZH\x30' + data[4:9] + bytes(4) + data[9:])
                 if os.system(f'{lzham_path} -d{data[4]} -c d temp.sc _temp.sc{nul}'):
-                    raise Exception(string.decomp_err)
+                    raise Exception(locale.decomp_err)
                 data = open('_temp.sc', 'rb').read()
                 [os.remove(i) for i in ('temp.sc', '_temp.sc')]
-            info(string.detected_comp % 'LZHAM')
+            Console.info(locale.detected_comp % 'LZHAM')
             uselzham = True
         else:
             try:
@@ -515,13 +546,14 @@ def decodeSC(fileName, sheetimage, check_lowres=True):
                 def d(data):
                     return D().decompress(data)
             except:
-                return info(string.not_installed2 % 'LZMA')
+                return Console.info(locale.not_installed2 % 'LZMA')
             try:
                 data = d(data[:9] + bytes(4) + data[9:])
             except:
                 data = d(data[:5] + b'\xff' * 8 + data[9:])
-            info(string.detected_comp % 'LZMA')
-    except: pass
+            Console.info(locale.detected_comp % 'LZMA')
+    except:
+        pass
 
     reader = Reader(data)
     ldata = len(data)
@@ -599,11 +631,10 @@ def decodeSC(fileName, sheetimage, check_lowres=True):
         DataBlockSize = reader.uint32
 
         if DataBlockTag == "01" or DataBlockTag == "18":
-            
+
             PixelType = reader.byte
 
             sheetdata[OffsetSheet].pos = (reader.uint16, reader.uint16)
-
 
             if check_lowres and sheetimage[OffsetSheet].size != sheetdata[OffsetSheet].pos:
                 i = 2
@@ -611,9 +642,8 @@ def decodeSC(fileName, sheetimage, check_lowres=True):
                 i = 1
 
             OffsetSheet += 1
-            
-            continue            
-    
+
+            continue
 
         if DataBlockTag == "1e":
             continue
@@ -624,33 +654,33 @@ def decodeSC(fileName, sheetimage, check_lowres=True):
             continue
 
         elif DataBlockTag == "12":
-            
+
             spritedata[OffsetShape].id = reader.uint16
-            
+
             spritedata[OffsetShape].total_regions = reader.uint16
             TotalsPointCount = reader.uint16
-
 
             for y in range(spritedata[OffsetShape].total_regions):
 
                 region = Region()
 
                 DataBlockTag16 = '%02x' % reader.byte
-                
+
                 if DataBlockTag16 == "16":
                     DataBlockSize16 = reader.uint32
                     region.sheet_id = reader.byte
-                    
+
                     region.num_points = reader.byte
-                    
-                    region.shape_points  = [ShapePoint() for z in range(region.num_points)]
+
+                    region.shape_points = [ShapePoint() for z in range(region.num_points)]
                     region.sheet_points = [SheetPoint() for z in range(region.num_points)]
 
                     for z in range(region.num_points):
                         region.shape_points[z].pos = (reader.int32, reader.int32)
                     for z in range(region.num_points):
-                        region.sheet_points[z].pos = (int(round(reader.uint16 * sheetdata[region.sheet_id].pos[0] / 65535) / i),
-                                                    int(round(reader.uint16 * sheetdata[region.sheet_id].pos[1] / 65535) / i))
+                        region.sheet_points[z].pos = (
+                            int(round(reader.uint16 * sheetdata[region.sheet_id].pos[0] / 65535) / i),
+                            int(round(reader.uint16 * sheetdata[region.sheet_id].pos[1] / 65535) / i))
 
                 spritedata[OffsetShape].regions.append(region)
 
@@ -661,10 +691,10 @@ def decodeSC(fileName, sheetimage, check_lowres=True):
 
             continue
 
-        elif DataBlockTag == "08": #Matrix
+        elif DataBlockTag == "08":  # Matrix
             [reader.int32 for i in range(6)]
             continue
-        elif DataBlockTag == "0c": #Animation
+        elif DataBlockTag == "0c":  # Animation
             reader.uint16
             reader.byte
             reader.uint16
@@ -692,7 +722,7 @@ def decodeSC(fileName, sheetimage, check_lowres=True):
 
         else:
             reader.stream.read(DataBlockSize)
-        
+
     maxLeft = 0
     maxRight = 0
     maxAbove = 0
@@ -702,15 +732,14 @@ def decodeSC(fileName, sheetimage, check_lowres=True):
         for y in range(spritedata[x].total_regions):
 
             region = spritedata[x].regions[y]
-            
+
             regionMinX = 32767
             regionMaxX = -32767
             regionMinY = 32767
             regionMaxY = -32767
-            for z in range (region.num_points):
+            for z in range(region.num_points):
                 tmpX, tmpY = region.shape_points[z].pos
-                
-                
+
                 if tmpY > region.top:
                     region.top = tmpY
                 if tmpX < region.left:
@@ -719,8 +748,7 @@ def decodeSC(fileName, sheetimage, check_lowres=True):
                     region.bottom = tmpY
                 if tmpX > region.right:
                     region.right = tmpX
-                
-                
+
                 sheetpoint = region.sheet_points[z]
 
                 tmpX, tmpY = sheetpoint.pos
@@ -748,24 +776,26 @@ def decodeSC(fileName, sheetimage, check_lowres=True):
 
     return spriteglobals, spritedata, sheetdata
 
-    
+
 def cut_sprites(spriteglobals, spritedata, sheetdata, sheetimage, xcod, folder_export):
     xcod.write(struct.pack('>H', spriteglobals.shape_count))
 
     for x in range(spriteglobals.shape_count):
         xcod.write(struct.pack('>H', spritedata[x].total_regions))
 
-        progressbar(string.cut_sprites % (x+1, spriteglobals.shape_count), x, spriteglobals.shape_count)
-            
+        Console.progress_bar(locale.cut_sprites % (x + 1, spriteglobals.shape_count), x, spriteglobals.shape_count)
+
         for y in range(spritedata[x].total_regions):
-            
+
             region = spritedata[x].regions[y]
 
             polygon = [region.sheet_points[z].pos for z in range(region.num_points)]
 
-            xcod.write(struct.pack('>2B2H', region.sheet_id, region.num_points, *sheetdata[region.sheet_id].pos) + b''.join(struct.pack('>2H', *i) for i in polygon) + struct.pack('?B', region.mirroring, region.rotation // 90))
+            xcod.write(
+                struct.pack('>2B2H', region.sheet_id, region.num_points, *sheetdata[region.sheet_id].pos) + b''.join(
+                    struct.pack('>2H', *i) for i in polygon) + struct.pack('?B', region.mirroring,
+                                                                           region.rotation // 90))
 
-        
             imMask = Image.new('L', sheetdata[region.sheet_id].pos, 0)
             ImageDraw.Draw(imMask).polygon(polygon, fill=255)
             bbox = imMask.getbbox()
@@ -773,15 +803,16 @@ def cut_sprites(spriteglobals, spritedata, sheetdata, sheetimage, xcod, folder_e
                 continue
 
             regionsize = (bbox[2] - bbox[0], bbox[3] - bbox[1])
-            tmpRegion = Image.new('RGBA',  regionsize,  None)
-                
-            tmpRegion.paste(sheetimage[region.sheet_id].crop(bbox),  None,  imMask.crop(bbox))
+            tmpRegion = Image.new('RGBA', regionsize, None)
+
+            tmpRegion.paste(sheetimage[region.sheet_id].crop(bbox), None, imMask.crop(bbox))
             if region.mirroring:
                 tmpRegion = tmpRegion.transform(regionsize, Image.EXTENT, (regionsize[0], 0, 0, regionsize[1]))
-                
+
             tmpRegion.rotate(region.rotation, expand=True) \
-            .save(f'{folder_export}/{x}_{y}.png')
+                .save(f'{folder_export}/{x}_{y}.png')
     print()
+
 
 def place_sprites(xcod, folder):
     xcod = open(xcod, 'rb')
@@ -800,7 +831,7 @@ def place_sprites(xcod, folder):
 
     for x in range(shape_count):
 
-        progressbar(string.place_sprites % (x+1, shape_count), x, shape_count)
+        Console.progress_bar(locale.place_sprites % (x + 1, shape_count), x, shape_count)
 
         total_regions, = struct.unpack('>H', xcod.read(2))
 
@@ -815,8 +846,8 @@ def place_sprites(xcod, folder):
                 continue
 
             tmpRegion = Image.open(f'{folder}/{x}_{y}.png') \
-            .convert('RGBA') \
-            .rotate(360 - rotation, expand=True)
+                .convert('RGBA') \
+                .rotate(360 - rotation, expand=True)
 
             imMask = Image.new('L', (x1, y1), 0)
             ImageDraw.Draw(imMask).polygon(polygon, fill=255)
@@ -829,13 +860,13 @@ def place_sprites(xcod, folder):
             if mirroring:
                 tmpRegion = tmpRegion.transform(regionsize, Image.EXTENT, (tmpRegion.width, 0, 0, tmpRegion.height))
 
-            sheetimage[sheet_id].paste(tmpRegion, bbox[:2],  tmpRegion)
+            sheetimage[sheet_id].paste(tmpRegion, bbox[:2], tmpRegion)
     print()
 
     return sheetimage, sheetimage_data
 
-def region_rotation(region):
 
+def region_rotation(region):
     def calc_sum(points, z):
         x1, y1 = points[(z + 1) % num_points].pos
         x2, y2 = points[z].pos
@@ -848,19 +879,19 @@ def region_rotation(region):
     for z in range(num_points):
         sumSheet += calc_sum(region.sheet_points, z)
         sumShape += calc_sum(region.shape_points, z)
-    
+
     sheetOrientation = -1 if (sumSheet < 0) else 1
     shapeOrientation = -1 if (sumShape < 0) else 1
-    
+
     region.mirroring = 0 if (shapeOrientation == sheetOrientation) else 1
-    
+
     if region.mirroring:
         for x in range(num_points):
             pos = region.shape_points[x].pos
-            region.shape_points[x].pos = (pos[0] *- 1, pos[1])
-    
-    pos00 = region.sheet_points[0].pos 
-    pos01 = region.sheet_points[1].pos 
+            region.shape_points[x].pos = (pos[0] * - 1, pos[1])
+
+    pos00 = region.sheet_points[0].pos
+    pos01 = region.sheet_points[1].pos
     pos10 = region.shape_points[0].pos
     pos11 = region.shape_points[1].pos
 
@@ -891,14 +922,14 @@ def region_rotation(region):
         qy = 2
     else:
         qy = 3
-    
+
     rotation = 0
     if px == qx and py == qy:
         rotation = 0
 
     elif px == 3:
         if px == qy:
-            if py == qx :
+            if py == qx:
                 rotation = 1
             else:
                 rotation = 3
@@ -932,7 +963,11 @@ def region_rotation(region):
     if sheetOrientation == -1 and rotation in (1, 3):
         rotation += 2
         rotation %= 4
-    
+
     region.rotation = rotation * 90
     return region
 
+
+# Testing TIME!
+if __name__ == '__main__':
+    welcome_text()

@@ -1,50 +1,55 @@
+# Refactored by Vorono4ka
+# Finished ~45%
+
+
 from system.Lib import *
 
 Clear()
 
 cfg_path = './system/config.json'
 
+
 def select_lang():
-    global string
     lang = input(
-            'Select Language\n'
-            'Выберите язык\n\n'
-            '1 - English\n'
-            '2 - Русский\n\n>>> ')
+        'Select Language\n'
+        'Выберите язык\n\n'
+        '1 - English\n'
+        '2 - Русский\n\n>>> '
+    )
     if lang == '1':
-        lang = 'en'
+        lang = 'en-EU'
     elif lang == '2':
-        lang = 'ru'
+        lang = 'ru-RU'
     else:
         Clear()
         select_lang()
 
     config.update({'lang': lang})
     json.dump(config, open(cfg_path, 'w'))
-    from system.strings import string
-    string = string[config['lang']]
 
 
 def init(ret=True):
     if ret:
         Clear()
-    info(string.detected_os % platform.system())
-    info(string.installing)
+    Console.info(locale.detected_os % platform.system())
+    Console.info(locale.installing)
     [os.system(f'pip3 install {i}{nul}') for i in ['colorama', 'pillow', 'lzma', 'pylzham']]
-    info(string.crt_workspace)
+    Console.info(locale.crt_workspace)
     [[os.system(f'mkdir {i}-{k}-SC{nul}') for k in ['Compressed', 'Decompressed', 'Sprites']] for i in ['In', 'Out']]
-    info(string.verifying)
+    Console.info(locale.verifying)
     for i in ['colorama', 'PIL', 'lzma', 'lzham']:
         try:
             [exec(f"{k} {i}") for k in ['import', 'del']]
-            info(string.installed % i)
-        except:
-            info(string.not_installed % i)
+            Console.info(locale.installed % i)
+        except Exception as e:
+            logger.write(e)
+            Console.info(locale.not_installed % i)
 
     config.update({'inited': True})
     json.dump(config, open(cfg_path, 'w'))
     if ret:
-        input(string.to_continue)
+        input(locale.to_continue)
+
 
 def clear_dirs():
     files = os.listdir('./')
@@ -56,7 +61,6 @@ def clear_dirs():
                 os.system(f'mkdir {folder}{nul}')
 
 
-
 def sc_decode():
     global errors
     folder = "./In-Compressed-SC/"
@@ -65,18 +69,19 @@ def sc_decode():
     for file in os.listdir(folder):
         if file.endswith("_tex.sc"):
 
-            CurrentSubPath = file[::-1].split('.', 1)[1][::-1] + '/'
-            if os.path.isdir(f"{folder_export}{CurrentSubPath}"):
-                shutil.rmtree(f"{folder_export}{CurrentSubPath}")
-            os.mkdir(f"{folder_export}{CurrentSubPath}")
+            current_sub_path = file[::-1].split('.', 1)[1][::-1] + '/'
+            if os.path.isdir(f"{folder_export}{current_sub_path}"):
+                shutil.rmtree(f"{folder_export}{current_sub_path}")
+            os.mkdir(f"{folder_export}{current_sub_path}")
             try:
-                decompileSC(f"{folder}{file}", CurrentSubPath, folder = folder, folder_export = folder_export)
+                decompileSC(f"{folder}{file}", current_sub_path, folder=folder, folder_export=folder_export)
             except Exception as e:
                 errors += 1
-                err_text(string.err % (e.__class__.__module__, e.__class__.__name__, e))
-                write_log(traceback.format_exc())
+                Console.err_text(locale.error % (e.__class__.__module__, e.__class__.__name__, e))
+                logger.write(traceback.format_exc())
 
             print()
+
 
 def sc_encode():
     global errors
@@ -88,8 +93,8 @@ def sc_encode():
             compileSC(f"{folder}{i}/", folder_export=folder_export)
         except Exception as e:
             errors += 1
-            err_text(string.err % (e.__class__.__module__, e.__class__.__name__, e))
-            write_log(traceback.format_exc())
+            Console.err_text(locale.error % (e.__class__.__module__, e.__class__.__name__, e))
+            logger.write(traceback.format_exc())
 
         print()
 
@@ -105,26 +110,31 @@ def sc1_decode():
 
             scfile = file[:-7] + '.sc'
             if scfile not in files:
-                err_text(string.not_found % scfile)
+                Console.err_text(locale.not_found % scfile)
             else:
-                CurrentSubPath = file[::-1].split('.', 1)[1][::-1] + '/'
-                if os.path.isdir(f"{folder_export}{CurrentSubPath}"):
-                    shutil.rmtree(f"{folder_export}{CurrentSubPath}")
-                os.mkdir(f"{folder_export}{CurrentSubPath}")
+                current_sub_path = file[::-1].split('.', 1)[1][::-1] + '/'
+                if os.path.isdir(f"{folder_export}{current_sub_path}"):
+                    shutil.rmtree(f"{folder_export}{current_sub_path}")
+                os.mkdir(f"{folder_export}{current_sub_path}")
                 try:
-                    info(string.dec_sctex)
-                    sheetimage, xcod = decompileSC(f"{folder}{file}", CurrentSubPath, to_memory=True, folder_export=folder_export)
-                    info(string.dec_sc)
-                    spriteglobals, spritedata, sheetdata = decodeSC(f"{folder}{scfile}", sheetimage)
-                    xc = open(f"{folder_export}{CurrentSubPath}" + file[:-3] + '.xcod', 'wb')
+                    Console.info(locale.dec_sc_tex)
+                    sheet_image, xcod = decompileSC(f"{folder}{file}",
+                                                    current_sub_path,
+                                                    to_memory=True,
+                                                    folder_export=folder_export)
+                    Console.info(locale.dec_sc)
+                    sprite_globals, sprite_data, sheet_data = decodeSC(f"{folder}{scfile}", sheet_image)
+                    xc = open(f"{folder_export}{current_sub_path}" + file[:-3] + '.xcod', 'wb')
                     xc.write(xcod)
-                    cut_sprites(spriteglobals, spritedata, sheetdata, sheetimage, xc, f"{folder_export}{CurrentSubPath}")
+                    cut_sprites(sprite_globals, sprite_data, sheet_data, sheet_image, xc,
+                                f"{folder_export}{current_sub_path}")
                 except Exception as e:
                     errors += 1
-                    err_text(string.err % (e.__class__.__module__, e.__class__.__name__, e))
-                    write_log(traceback.format_exc())
+                    Console.err_text(locale.error % (e.__class__.__module__, e.__class__.__name__, e))
+                    logger.write(traceback.format_exc())
 
             print()
+
 
 def sc1_encode():
     global errors
@@ -137,62 +147,56 @@ def sc1_encode():
 
         xcod = file + '.xcod'
         if xcod not in os.listdir(f'{folder}{file}/'):
-            err_text(string.not_found % xcod)
+            Console.err_text(locale.not_found % xcod)
         else:
-            
             try:
-                info(string.dec_sctex)
-                sheetimage, sheetimage_data = place_sprites(f"{folder}{file}/{xcod}", f"{folder}{file}")
-                info(string.dec_sc)
-                compileSC(f'{folder}{file}/', sheetimage, sheetimage_data, folder_export)
+                Console.info(locale.dec_sc_tex)
+                sheet_image, sheet_image_data = place_sprites(f"{folder}{file}/{xcod}", f"{folder}{file}")
+                Console.info(locale.dec_sc)
+                compileSC(f'{folder}{file}/', sheet_image, sheet_image_data, folder_export)
             except Exception as e:
                 errors += 1
-                err_text(f"Error while decoding! ({e.__class__.__module__}.{e.__class__.__name__}: {e})")
-                write_log(traceback.format_exc())
+                Console.err_text(f"Error while decoding! ({e.__class__.__module__}.{e.__class__.__name__}: {e})")
+                logger.write(traceback.format_exc())
             print()
 
 
-v = Version
-
 if __name__ == '__main__':
+    logger = Logger('en-EU')
     if os.path.isfile(cfg_path):
         try:
             config = json.load(open(cfg_path))
-        except:
-            config = {'inited': False, 'version': v}
+        except Exception as e:
+            logger.write(e)
+            config = {'inited': False, 'version': version}
     else:
-        config = {'inited': False, 'version': v}
+        config = {'inited': False, 'version': version}
 
     if not config.get('lang'):
         select_lang()
+    logger = Logger(config['lang'])
+    locale = Locale()
+    locale.load_from(config['lang'])
 
     if not config['inited']:
         init()
-        try: os.system('python%s "%s"' % ('' if isWin else '3', __file__))
-        except: pass
+        try:
+            os.system('python%s "%s"' % ('' if is_windows else '3', __file__))
+        except Exception as e:
+            logger.write(e)
         exit()
 
-    from system.strings import string, console
-    Title(string['en'].xcoder % config['version'])
+    from system.Lib import welcome_text
 
-    while 1:
-        try:
-            string = string[config['lang']]
-            break
-        except:
-            select_lang()
-
-    locale(config['lang'])
-    
+    Title(locale.xcoder % config['version'])
 
     while 1:
         try:
             errors = 0
-            [os.remove(i) if os.path.isfile(
-                i) else None for i in ('temp.sc', '_temp.sc')]
-            
+            [os.remove(i) if os.path.isfile(i) else None for i in ('temp.sc', '_temp.sc')]
+
             Clear()
-            answer = console(config)
+            answer = welcome_text()
             print()
             if answer == '1':
                 sc_decode()
@@ -202,34 +206,31 @@ if __name__ == '__main__':
                 sc1_decode()
             elif answer == '4':
                 sc1_encode()
-
             elif answer == '101':
-                print(string.not_implemented)
+                print(locale.not_implemented)
             elif answer == '102':
                 init(ret=False)
             elif answer == '103':
                 select_lang()
-                locale(config['lang'])
+                locale.load_from(config['lang'])
             elif answer == '104':
-                if not question(string.clear_qu):
+                if not Console.question(locale.clear_qu):
                     continue
                 clear_dirs()
-                    
             elif answer == '105':
                 Clear()
                 break
-
             else:
                 continue
 
             if errors > 0:
-                err_text(string.done_err % errors)
+                Console.err_text(locale.done_err % errors)
             else:
-                done_text(string.done)
+                Console.done_text(locale.done)
 
-            input(string.to_continue)
-        
+            input(locale.to_continue)
+
         except KeyboardInterrupt:
-            if question(string.want_exit):
+            if Console.question(locale.want_exit):
                 Clear()
                 break
