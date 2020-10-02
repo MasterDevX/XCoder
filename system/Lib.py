@@ -496,7 +496,7 @@ def compileSC(_dir, from_memory=None, imgdata=None, folder_export=None):
         fout.write(struct.pack(">2sII16s", b'SC', 1, 16, hashlib.md5(sc).digest()))
         Console.info(locale.header_done)
         if uselzham:
-            Console.info(locale.comp_with % 'LZHAM')
+            Console.info(locale.compressing_with % 'LZHAM')
             fout.write(struct.pack("<4sBI", b'SCLZ', 18, len(sc)))
             if exe:
                 with open('temp.sc', 'wb') as s:
@@ -513,7 +513,7 @@ def compileSC(_dir, from_memory=None, imgdata=None, folder_export=None):
 
             fout.write(compressed)
         else:
-            Console.info(locale.comp_with % 'LZMA')
+            Console.info(locale.compressing_with % 'LZMA')
             l = struct.pack("<I", len(sc))
             sc = lzma.compress(sc, format=lzma.FORMAT_ALONE, filters=[
                 {"id": lzma.FILTER_LZMA1, "dict_size": 0x40000, "lc": 3, "lp": 0, "pb": 2, "mode": lzma.MODE_NORMAL}])

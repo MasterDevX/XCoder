@@ -54,7 +54,7 @@ class Locale:
         self.split_pic = None
         self.writing_pic = None
         self.header_done = None
-        self.compression_with = None
+        self.compressing_with = None
         self.compression_error = None
         self.compression_done = None
         self.dir_empty = None

@@ -49,7 +49,7 @@
 	"split_pic": "Splitting picture...",	
 	"writing_pic": "Writing pixels...",	
 	"header_done": "Header wrote!",	
-	"compression_with": "Compressing texture with %s...",
+	"compressing_with": "Compressing texture with %s...",
 	"compression_error": "Compression failed",
 	"compression_done": "Compression done!",
 	"dir_empty": "Dir \"%s\" is empty!",	
