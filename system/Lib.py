@@ -24,7 +24,6 @@ import shutil
 
 from system.localization import Locale
 
-
 version = '2.0.1-prerelease'
 lzham_path = r'system\lzham'
 
@@ -44,7 +43,6 @@ else:
     config = {'inited': False, 'version': version, 'lang': 'en-EU'}
 json.dump(config, open(config_path, 'w'))
 locale.load_from(config['lang'])
-
 
 if is_windows:
     try:
@@ -291,23 +289,18 @@ class Reader:
     def __init__(self, data):
         self.stream = io.BytesIO(data)
 
-    @property
     def byte(self):
         return int.from_bytes(self.stream.read(1), 'little')
 
-    @property
     def uint16(self):
         return int.from_bytes(self.stream.read(2), 'little')
 
-    @property
     def int16(self):
         return int.from_bytes(self.stream.read(2), 'little', signed=True)
 
-    @property
     def uint32(self):
         return int.from_bytes(self.stream.read(4), 'little')
 
-    @property
     def int32(self):
         return int.from_bytes(self.stream.read(4), 'little', signed=True)
 
@@ -349,9 +342,10 @@ def decompileSC(fileName, CurrentSubPath, to_memory=False, folder=None, folder_e
                 uselzham = True
             else:
                 try:
-                    from lzma import LZMADecompressor as D
+                    from lzma import LZMADecompressor
+                    
                     def d(data):
-                        return D().decompress(data)
+                        return LZMADecompressor().decompress(data)
                 except:
                     return Console.info(locale.not_installed2 % 'LZMA')
                 try:
@@ -424,21 +418,21 @@ def compileSC(_dir, from_memory=None, imgdata=None, folder_export=None):
     sc = io.BytesIO()
 
     hasxcod = False
-    uselzham = False
+    use_lzham = False
     if from_memory:
-        uselzham = imgdata['uselzham']
+        use_lzham = imgdata['uselzham']
     else:
         try:
-            scdata = open(f"{_dir}{name}.xcod", "rb")
-            scdata.read(4)
-            uselzham, = struct.unpack("?", scdata.read(1))
-            scdata.read(1)
+            sc_data = open(f"{_dir}{name}.xcod", "rb")
+            sc_data.read(4)
+            use_lzham, = struct.unpack("?", sc_data.read(1))
+            sc_data.read(1)
             hasxcod = True
         except:
             Console.info(locale.not_xcod)
             Console.info(locale.default_types)
 
-    if uselzham:
+    if use_lzham:
         try:
             import lzham
         except:
@@ -462,7 +456,7 @@ def compileSC(_dir, from_memory=None, imgdata=None, folder_export=None):
             subType = imgdata['data'][picCount]['subType']
         else:
             if hasxcod:
-                fileType, subType, width, height = struct.unpack(">BBHH", scdata.read(6))
+                fileType, subType, width, height = struct.unpack(">BBHH", sc_data.read(6))
 
                 if (width, height) != img.size:
                     Console.info(locale.illegal_size % (width, height, img.width, img.height))
@@ -495,14 +489,14 @@ def compileSC(_dir, from_memory=None, imgdata=None, folder_export=None):
     with open(f"{folder_export}{name}.sc", "wb") as fout:
         fout.write(struct.pack(">2sII16s", b'SC', 1, 16, hashlib.md5(sc).digest()))
         Console.info(locale.header_done)
-        if uselzham:
+        if use_lzham:
             Console.info(locale.compressing_with % 'LZHAM')
             fout.write(struct.pack("<4sBI", b'SCLZ', 18, len(sc)))
             if exe:
                 with open('temp.sc', 'wb') as s:
                     s.write(sc)
                 if os.system(f'{lzham_path} -d18 -c c temp.sc _temp.sc{nul}'):
-                    raise Exception(locale.compession_error)
+                    raise Exception(locale.compression_error)
                 with open('_temp.sc', 'rb') as s:
                     s.read(13)
                     compressed = s.read()
@@ -518,7 +512,7 @@ def compileSC(_dir, from_memory=None, imgdata=None, folder_export=None):
             sc = lzma.compress(sc, format=lzma.FORMAT_ALONE, filters=[
                 {"id": lzma.FILTER_LZMA1, "dict_size": 0x40000, "lc": 3, "lp": 0, "pb": 2, "mode": lzma.MODE_NORMAL}])
             fout.write(sc[:5] + l + sc[13:])
-        Console.info(locale.comp_done)
+        Console.info(locale.compression_done)
         print()
 
 
@@ -545,16 +539,17 @@ def decodeSC(fileName, sheetimage, check_lowres=True):
                 with open('temp.sc', 'wb') as sc:
                     sc.write(b'LZH\x30' + data[4:9] + bytes(4) + data[9:])
                 if os.system(f'{lzham_path} -d{data[4]} -c d temp.sc _temp.sc{nul}'):
-                    raise Exception(locale.decomp_err)
+                    raise Exception(locale.decompression_error)
                 data = open('_temp.sc', 'rb').read()
                 [os.remove(i) for i in ('temp.sc', '_temp.sc')]
             Console.info(locale.detected_comp % 'LZHAM')
             uselzham = True
         else:
             try:
-                from lzma import LZMADecompressor as D
+                from lzma import LZMADecompressor
+                
                 def d(data):
-                    return D().decompress(data)
+                    return LZMADecompressor().decompress(data)
             except:
                 return Console.info(locale.not_installed2 % 'LZMA')
             try:
@@ -614,37 +609,37 @@ def decodeSC(fileName, sheetimage, check_lowres=True):
 
     spriteglobals = SpriteGlobals()
 
-    spriteglobals.shape_count = reader.uint16
-    spriteglobals.total_animations = reader.uint16
-    spriteglobals.total_textures = reader.uint16
-    spriteglobals.text_field_count = reader.uint16
-    spriteglobals.matrix_count = reader.uint16
-    spriteglobals.color_transformation_count = reader.uint16
+    spriteglobals.shape_count = reader.uint16()
+    spriteglobals.total_animations = reader.uint16()
+    spriteglobals.total_textures = reader.uint16()
+    spriteglobals.text_field_count = reader.uint16()
+    spriteglobals.matrix_count = reader.uint16()
+    spriteglobals.color_transformation_count = reader.uint16()
 
     sheetdata = [SheetData() for x in range(spriteglobals.total_textures)]
     spritedata = [SpriteData() for x in range(spriteglobals.shape_count)]
 
-    reader.uint32
-    reader.byte
+    reader.uint32()
+    reader.byte()
 
-    spriteglobals.export_count = reader.uint16
+    spriteglobals.export_count = reader.uint16()
 
     for i in range(spriteglobals.export_count):
-        reader.uint16
+        reader.uint16()
 
     for i in range(spriteglobals.export_count):
         reader.string()
 
     while ldata - reader.stream.tell():
 
-        DataBlockTag = '%02x' % reader.byte
-        DataBlockSize = reader.uint32
+        DataBlockTag = '%02x' % reader.byte()
+        DataBlockSize = reader.uint32()
 
         if DataBlockTag == "01" or DataBlockTag == "18":
 
-            PixelType = reader.byte
+            PixelType = reader.byte()
 
-            sheetdata[OffsetSheet].pos = (reader.uint16, reader.uint16)
+            sheetdata[OffsetSheet].pos = (reader.uint16(), reader.uint16())
 
             if check_lowres and sheetimage[OffsetSheet].size != sheetdata[OffsetSheet].pos:
                 i = 2
@@ -665,67 +660,67 @@ def decodeSC(fileName, sheetimage, check_lowres=True):
 
         elif DataBlockTag == "12":
 
-            spritedata[OffsetShape].id = reader.uint16
+            spritedata[OffsetShape].id = reader.uint16()
 
-            spritedata[OffsetShape].total_regions = reader.uint16
-            TotalsPointCount = reader.uint16
+            spritedata[OffsetShape].total_regions = reader.uint16()
+            TotalsPointCount = reader.uint16()
 
             for y in range(spritedata[OffsetShape].total_regions):
 
                 region = Region()
 
-                DataBlockTag16 = '%02x' % reader.byte
+                DataBlockTag16 = '%02x' % reader.byte()
 
                 if DataBlockTag16 == "16":
-                    DataBlockSize16 = reader.uint32
-                    region.sheet_id = reader.byte
+                    DataBlockSize16 = reader.uint32()
+                    region.sheet_id = reader.byte()
 
-                    region.num_points = reader.byte
+                    region.num_points = reader.byte()
 
                     region.shape_points = [ShapePoint() for z in range(region.num_points)]
                     region.sheet_points = [SheetPoint() for z in range(region.num_points)]
 
                     for z in range(region.num_points):
-                        region.shape_points[z].pos = (reader.int32, reader.int32)
+                        region.shape_points[z].pos = (reader.int32(), reader.int32())
                     for z in range(region.num_points):
                         region.sheet_points[z].pos = (
-                            int(round(reader.uint16 * sheetdata[region.sheet_id].pos[0] / 65535) / i),
-                            int(round(reader.uint16 * sheetdata[region.sheet_id].pos[1] / 65535) / i))
+                            int(round(reader.uint16() * sheetdata[region.sheet_id].pos[0] / 65535) / i),
+                            int(round(reader.uint16() * sheetdata[region.sheet_id].pos[1] / 65535) / i))
 
                 spritedata[OffsetShape].regions.append(region)
 
-            reader.uint32
-            reader.byte
+            reader.uint32()
+            reader.byte()
 
             OffsetShape += 1
 
             continue
 
         elif DataBlockTag == "08":  # Matrix
-            [reader.int32 for i in range(6)]
+            [reader.int32() for i in range(6)]
             continue
         elif DataBlockTag == "0c":  # Animation
-            reader.uint16
-            reader.byte
-            reader.uint16
+            reader.uint16()
+            reader.byte()
+            reader.uint16()
 
-            cnt1 = reader.int32
+            cnt1 = reader.int32()
 
             for i in range(cnt1):
-                reader.uint16
-                reader.uint16
-                reader.uint16
+                reader.uint16()
+                reader.uint16()
+                reader.uint16()
 
-            cnt2 = reader.uint16
-
-            for i in range(cnt2):
-                reader.uint16
+            cnt2 = reader.uint16()
 
             for i in range(cnt2):
-                reader.byte
+                reader.uint16()
 
             for i in range(cnt2):
-                StringLength = reader.byte
+                reader.byte()
+
+            for i in range(cnt2):
+                StringLength = reader.byte()
                 if StringLength < 255:
                     reader.stream.read(StringLength)
             continue
@@ -782,7 +777,7 @@ def decodeSC(fileName, sheetimage, check_lowres=True):
 
             region.size = size
 
-        spritedata[x].regions[y] = region
+            spritedata[x].regions[y] = region
 
     return spriteglobals, spritedata, sheetdata
 
