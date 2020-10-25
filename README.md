@@ -21,19 +21,19 @@ On Windows:
 - Download Python 3.7 or newer version from <a href="https://www.python.org/downloads/">official page</a>.
 - Install Python. While Installing, enable such parameters as "Add Python to PATH", "Install pip", "Install py launcher", "Associate files with Python" and "Add Python to environment variables".
 - Download XCoder from <a href="https://github.com/MasterDevX/XCoder/releases">releases page</a> and extract it.
-- Execute "Main.py" file</br>
+- Execute "Init.py" file</br>
 
 On Linux:
 - Open Terminal and install Python by executing following command:</br>
 ```sudo apt-get update && sudo apt-get install python3 python3-pip```
 - Download XCoder from <a href="https://github.com/MasterDevX/XCoder/releases">releases page</a> and extract it.
-- Execute "Main.py" file
+- Execute "Init.py" file
 
 On Android:
 - Download and install PyDroid app from <a href="https://play.google.com/store/apps/details?id=ru.iiec.pydroid3">Google Play</a>.
 - Open PyDroid and wait until Python installs.
 - Download XCoder from <a href="https://github.com/MasterDevX/XCoder/releases">releases page</a> and extract it.
-- In PyDroid open and execute "Main.py" file</br>
+- In PyDroid open and execute "Init.py" file</br>
 
 ### TODO:
 - CSV compilation / decompilation.
