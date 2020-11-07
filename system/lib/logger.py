@@ -9,9 +9,9 @@ class Logger:
         self.locale = Locale()
         self.locale.load_from(language)
 
-    def write(self, error):
+    def write(self, error: Exception):
         current_date = time.strftime('%d.%m.%Y %H:%M:%S')
-        path = f'../../log.txt'
+        path = 'log.txt'
         if not os.path.isfile(path):
             mode = 'w'
         else:

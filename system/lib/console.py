@@ -17,11 +17,11 @@ class Console:
         return (current + 1) * 100 // total
 
     @staticmethod
-    def int_qu(a):
+    def ask_integer(a):
         try:
             return int(input(f"[????] {a} "))
         except ValueError:
-            return Console.int_qu(a)
+            return Console.ask_integer(a)
 
     @staticmethod
     def question(message):
@@ -32,8 +32,8 @@ class Console:
             return Console.question(message)
 
     @staticmethod
-    def err_text(message):
-        print(colorama.Fore.RED + message + colorama.Style.RESET_ALL)
+    def error(message):
+        print(colorama.Fore.RED + '[ERROR] ' + message + colorama.Style.RESET_ALL)
 
     @staticmethod
     def done_text(message):
@@ -42,4 +42,4 @@ class Console:
 
 if __name__ == '__main__':
     console = Console()
-    console.int_qu('Please, type any integer: ')
+    console.ask_integer('Please, type any integer: ')

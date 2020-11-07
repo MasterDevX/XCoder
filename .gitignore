@@ -1,7 +1,10 @@
-/system/config.json
-/In-Compressed-SC/
-/In-Decompressed-SC/
-/In-Sprites-SC/
-/Out-Compressed-SC/
-/Out-Decompressed-SC/
-/Out-Sprites-SC/
+In-Compressed-SC/
+In-Decompressed-SC/
+In-Sprites-SC/
+Out-Compressed-SC/
+Out-Decompressed-SC/
+Out-Sprites-SC/
+.idea/
+system/config.json
+*.pyc
+log.txt

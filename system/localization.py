@@ -68,13 +68,13 @@ class Locale:
         self.error = None
 
     def load_from(self, language: str):
-        language_file_path = 'system/languages/' + language + '.json'
-        english_language_file_path = 'system/languages/en-EU.json'
+        language_filepath = 'system/languages/' + language + '.json'
+        english_language_filepath = 'system/languages/en-EU.json'
 
         loaded_locale = {}
-        if os.path.exists(language_file_path):
-            loaded_locale = json.load(open(language_file_path, encoding='utf-8'))  # Any
-        english_locale = json.load(open(english_language_file_path))  # English
+        if os.path.exists(language_filepath):
+            loaded_locale = json.load(open(language_filepath, encoding='utf-8'))  # Any
+        english_locale = json.load(open(english_language_filepath))  # English
 
         for key in self.__dict__:
             if key in loaded_locale:
