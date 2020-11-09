@@ -1,5 +1,5 @@
 # Refactored by Vorono4ka
-# Finished ~45%
+# Finished ~85%
 
 
 from system.Lib import *
@@ -37,7 +37,7 @@ def init(ret=True):
     Console.info(locale.crt_workspace)
     [[os.system(f'mkdir {i}-{k}-SC{nul}') for k in ['Compressed', 'Decompressed', 'Sprites']] for i in ['In', 'Out']]
     Console.info(locale.verifying)
-    for i in ['colorama', 'PIL', 'sc_compression']:
+    for i in ['colorama', 'PIL', 'sc_compression', 'requests']:
         try:
             [exec(f'{k} {i}') for k in ['import', 'del']]
             Console.info(locale.installed % i)
@@ -45,8 +45,9 @@ def init(ret=True):
             logger.write(e)
             Console.info(locale.not_installed % i)
 
-    config.update({'inited': True})
+    config.update({'inited': True, 'version': get_tags('vorono4ka', 'xcoder')[0]['name'][1:]})
     json.dump(config, open(cfg_path, 'w'))
+
     if ret:
         input(locale.to_continue)
 
@@ -118,16 +119,25 @@ def sc1_decode():
                 os.mkdir(f'{folder_export}/{current_sub_path}')
                 try:
                     Console.info(locale.dec_sc_tex)
-                    sheet_image, xcod = decompile_sc(f'{folder}{file}',
-                                                     current_sub_path,
-                                                     to_memory=True,
-                                                     folder_export=folder_export)
+                    sheet_image, xcod = decompile_sc(
+                        file,
+                        current_sub_path,
+                        True,
+                        folder,
+                        folder_export
+                    )
                     Console.info(locale.dec_sc)
                     sprite_globals, sprite_data, sheet_data = decode_sc(sc_file, folder, sheet_image)
-                    xc = open(f'{folder_export}{current_sub_path}' + file[:-3] + '.xcod', 'wb')
+                    xc = open(f'{folder_export}/{current_sub_path}' + file[:-3] + '.xcod', 'wb')
                     xc.write(xcod)
-                    cut_sprites(sprite_globals, sprite_data, sheet_data, sheet_image, xc,
-                                f'{folder_export}{current_sub_path}')
+                    cut_sprites(
+                        sprite_globals,
+                        sprite_data,
+                        sheet_data,
+                        sheet_image,
+                        xc,
+                        f'{folder_export}/{current_sub_path}'
+                    )
                 except Exception as e:
                     errors += 1
                     Console.error(locale.error % (e.__class__.__module__, e.__class__.__name__, e))
@@ -168,9 +178,9 @@ if __name__ == '__main__':
             config = json.load(open(cfg_path))
         except Exception as e:
             logger.write(e)
-            config = {'inited': False, 'version': version}
+            config = {'inited': False, 'version': None}
     else:
-        config = {'inited': False, 'version': version}
+        config = {'inited': False, 'version': None}
 
     if not config.get('lang'):
         select_lang()
@@ -186,6 +196,21 @@ if __name__ == '__main__':
             logger.write(e)
         exit()
 
+    if not config['updated']:
+        Console.done_text(locale.update_done % '')
+        if Console.question(locale.done[:-1] + '?'):
+            latest_tag = get_tags('vorono4ka', 'xcoder')[0]
+            latest_tag_name = latest_tag['name'][1:]
+
+            config.update({'updated': True, 'version': latest_tag_name})
+            json.dump(config, open(config_path, 'w'))
+
+            try:
+                os.system('python%s "%s"' % ('' if is_windows else '3', __file__))
+            except Exception as e:
+                logger.write(e)
+        exit()
+
     from system.Lib import welcome_text
 
     set_title(locale.xcoder % config['version'])
@@ -193,7 +218,7 @@ if __name__ == '__main__':
     while 1:
         try:
             errors = 0
-            [os.remove(i) if os.path.isfile(i) else None for i in ('temp.sc', '_temp.sc')]
+            [os.remove(i) for i in ('temp.sc', '_temp.sc') if os.path.isfile(i)]
 
             clear()
             answer = welcome_text()
@@ -207,7 +232,7 @@ if __name__ == '__main__':
             elif answer == '4':
                 sc1_encode()
             elif answer == '101':
-                print(locale.not_implemented)
+                check_update()
             elif answer == '102':
                 init(ret=False)
             elif answer == '103':

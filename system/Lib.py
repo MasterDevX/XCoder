@@ -1,3 +1,6 @@
+import requests
+import zipfile
+
 from system.localization import Locale
 from system.lib.console import Console
 from system.lib.logger import Logger
@@ -23,7 +26,6 @@ try:
 except Exception as e:
     logger.write(e)
 
-version = '2.0.1-prerelease'
 lzham_path = r'system\lzham'
 
 is_windows = platform.system() == 'Windows'
@@ -32,7 +34,7 @@ nul = f' > {"nul" if is_windows else "/dev/null"} 2>&1'
 locale = Locale()
 config_path = './system/config.json'
 
-config = {'inited': False, 'version': version, 'lang': 'en-EU'}
+config = {'inited': False, 'version': None, 'lang': 'en-EU', 'updated': True}
 if os.path.isfile(config_path):
     try:
         config = json.load(open(config_path))
@@ -114,6 +116,54 @@ def welcome_text():
     choice = input(locale.choice)
     print(console_width * '-')
     return choice
+
+
+def get_tags(owner: str, repo: str):
+    api_url = 'https://api.github.com'
+
+    tags = requests.get(api_url + '/repos/{owner}/{repo}/tags'.format(owner=owner, repo=repo)).json()
+    tags = [
+        {
+            key: v for key, v in tag.items()
+            if key in ['name', 'zipball_url']
+        } for tag in tags
+    ]
+
+    return tags
+
+
+def check_update():
+    tags = get_tags('vorono4ka', 'xcoder')
+
+    if len(tags) > 0:
+        latest_tag = tags[0]
+        latest_tag_name = latest_tag['name'][1:]  # clear char 'v' at string start
+        if config['version'] != latest_tag_name:
+            Console.error(locale.not_latest)
+
+            Console.info(locale.update_downloading)
+            download_update(latest_tag['zipball_url'])
+
+
+def download_update(zip_url):
+    if not os.path.exists('updates'):
+        os.mkdir('updates')
+
+    with open('updates/update.zip', 'wb') as f:
+        f.write(requests.get(zip_url).content)
+        f.close()
+
+    with zipfile.ZipFile('updates/update.zip') as zf:
+        zf.extractall('updates/')
+
+        zf.close()
+
+        Console.done_text(locale.update_done % f'"{zf.namelist()[0]}"')
+        config.update({'updated': False})
+        print(config)
+        json.dump(config, open(config_path, 'w'))
+        input(locale.to_continue)
+        exit()
 
 
 def get_pixel_size(_type):
@@ -217,69 +267,70 @@ def rgba2bytes(sc, img, _type):
 
 
 def join_image(img, p):
-    _w, _h = img.size
-    imgl = img.load()
+    width, height = img.size
+    loaded_img = img.load()
     x = 0
     a = 32
 
-    _ha = _h // a
-    _wa = _w // a
-    ha = _h % a
-
-    for l in range(_ha):
-        for k in range(_w // a):
-            for j in range(a):
-                for h in range(a):
-                    imgl[h + k * a, j + l * a] = p[x]
-                    x += 1
-
-        for j in range(a):
-            for h in range(_w % a):
-                imgl[h + (_w - _w % a), j + l * a] = p[x]
-                x += 1
-        Console.progress_bar(locale.join_pic, l, _ha)
-
-    for k in range(_wa):
-        for j in range(_h % a):
-            for h in range(a):
-                imgl[h + k * a, j + (_h - _h % a)] = p[x]
-                x += 1
-
-    for j in range(ha):
-        for h in range(_w % a):
-            imgl[h + (_w - _w % a), j + (_h - _h % a)] = p[x]
-            x += 1
-
-
-def split_image(img):
-    p = []
-    _w, _h = img.size
-    imgl = img.load()
-    a = 32
-
-    _ha = _h // a
-    _wa = _w // a
-    ha = _h % a
+    _ha = height // a
+    _wa = width // a
+    ha = height % a
+    wa = width % a
 
     for l in range(_ha):
         for k in range(_wa):
             for j in range(a):
                 for h in range(a):
-                    p.append(imgl[h + (k * a), j + (l * a)])
+                    loaded_img[h + k * a, j + l * a] = p[x]
+                    x += 1
 
         for j in range(a):
-            for h in range(_w % a):
-                p.append(imgl[h + (_w - (_w % a)), j + (l * a)])
-        Console.progress_bar(locale.split_pic, l, _ha)
+            for h in range(wa):
+                loaded_img[h + (width - wa), j + l * a] = p[x]
+                x += 1
+        Console.progress_bar(locale.join_pic, l, _ha)
 
-    for k in range(_w // a):
-        for j in range(int(_h % a)):
+    for k in range(_wa):
+        for j in range(ha):
             for h in range(a):
-                p.append(imgl[h + (k * a), j + (_h - (_h % a))])
+                loaded_img[h + k * a, j + (height - ha)] = p[x]
+                x += 1
 
     for j in range(ha):
-        for h in range(_w % a):
-            p.append(imgl[h + (_w - (_w % a)), j + (_h - (_h % a))])
+        for h in range(wa):
+            loaded_img[h + (width - wa), j + (height - ha)] = p[x]
+            x += 1
+
+
+def split_image(img):
+    p = []
+    width, height = img.size
+    loaded_img = img.load()
+    a = 32
+
+    _ha = height // a
+    _wa = width // a
+    ha = height % a
+
+    for l in range(_ha):
+        for k in range(_wa):
+            for j in range(a):
+                for h in range(a):
+                    p.append(loaded_img[h + (k * a), j + (l * a)])
+
+        for j in range(a):
+            for h in range(width % a):
+                p.append(loaded_img[h + (width - (width % a)), j + (l * a)])
+        Console.progress_bar(locale.split_pic, l, _ha)
+
+    for k in range(width // a):
+        for j in range(int(height % a)):
+            for h in range(a):
+                p.append(loaded_img[h + (k * a), j + (height - (height % a))])
+
+    for j in range(ha):
+        for h in range(width % a):
+            p.append(loaded_img[h + (width - (width % a)), j + (height - (height % a))])
     img.putdata(p)
 
 
@@ -325,7 +376,7 @@ def decompile_sc(file_name, current_sub_path, to_memory=False, folder=None, fold
 
             if signature == 'sclz':
                 use_lzham = True
-        except:
+        except Exception as e:
             Console.info(locale.try_error)
 
         data = io.BytesIO(decompressed)
@@ -397,22 +448,9 @@ def compile_sc(_dir, from_memory=None, img_data=None, folder_export=None):
             use_lzham, = struct.unpack('?', sc_data.read(1))
             sc_data.read(1)
             has_xcod = True
-        except:
+        except Exception as e:
             Console.info(locale.not_xcod)
             Console.info(locale.default_types)
-
-    if use_lzham:
-        try:
-            import lzham
-        except:
-            if not is_windows:
-                return Console.info(locale.not_installed2 % 'LZHAM')
-    else:
-        try:
-            import lzma
-        except:
-            if not is_windows:
-                return Console.info(locale.not_installed2 % 'LZMA')
 
     for picCount in range(len(files)):
         print()
@@ -481,7 +519,7 @@ def decode_sc(file_name, folder, sheet_image, check_lowres=True):
             signature = decompressor.get_signature()
 
             Console.info(locale.detected_comp % signature.upper())
-        except:
+        except Exception as e:
             Console.info(locale.try_error)
 
     reader = Reader(decompressed)
@@ -514,6 +552,7 @@ def decode_sc(file_name, folder, sheet_image, check_lowres=True):
     for i in range(sprite_globals.export_count):
         reader.string()
 
+    i = 1
     while data_length - reader.stream.tell():
 
         data_block_tag = '%02x' % reader.byte()
@@ -526,8 +565,6 @@ def decode_sc(file_name, folder, sheet_image, check_lowres=True):
 
             if check_lowres and sheet_image[offset_sheet].size != sheet_data[offset_sheet].pos:
                 i = 2
-            else:
-                i = 1
 
             offset_sheet += 1
 
@@ -721,7 +758,7 @@ def place_sprites(xcod, folder):
         for y in range(total_regions):
 
             sheet_id, num_points, x1, y1 = struct.unpack('>2B2H', xcod.read(6))
-            polygon = [struct.unpack('>2H', xcod.read(4)) for i in range(num_points)]
+            polygon = [unpack('>2H', xcod.read(4)) for unpack in [struct.unpack] * num_points]
             mirroring, rotation = struct.unpack('?B', xcod.read(2))
             rotation *= 90
 
@@ -751,7 +788,7 @@ def place_sprites(xcod, folder):
 
 
 def region_rotation(region):
-    def calc_sum(points, z):
+    def calc_sum(points):
         x1, y1 = points[(z + 1) % num_points].pos
         x2, y2 = points[z].pos
         return (x1 - x2) * (y1 + y2)
@@ -761,8 +798,8 @@ def region_rotation(region):
     num_points = region.num_points
 
     for z in range(num_points):
-        sum_sheet += calc_sum(region.sheet_points, z)
-        sum_shape += calc_sum(region.shape_points, z)
+        sum_sheet += calc_sum(region.sheet_points)
+        sum_shape += calc_sum(region.shape_points)
 
     sheet_orientation = -1 if (sum_sheet < 0) else 1
     shape_orientation = -1 if (sum_shape < 0) else 1

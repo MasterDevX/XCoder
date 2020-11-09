@@ -17,17 +17,17 @@ class Console:
         return (current + 1) * 100 // total
 
     @staticmethod
-    def ask_integer(a):
+    def ask_integer(message):
         try:
-            return int(input(f"[????] {a} "))
+            return int(input(f'[????] {message}: '))
         except ValueError:
-            return Console.ask_integer(a)
+            return Console.ask_integer(message)
 
     @staticmethod
     def question(message):
-        x = input(f"[????] {message} [y/n] ").lower()
-        if x in ("y", "n"):
-            return "ny".index(x)
+        x = input(f'[????] {message} [y/n] ').lower()
+        if x in 'ny':
+            return 'ny'.index(x)
         else:
             return Console.question(message)
 

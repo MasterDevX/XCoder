@@ -7,9 +7,11 @@ class Locale:
         self.xcoder = None
         self.detected_os = None
         self.installing = None
+        self.update_downloading = None
         self.crt_workspace = None
         self.verifying = None
         self.installed = None
+        self.update_done = None
         self.not_installed = None
         self.clear_qu = None
         self.done = None
@@ -26,6 +28,7 @@ class Locale:
         self.oth = None
         self.check_update = None
         self.version = None
+        self.not_latest = None
         self.reinit = None
         self.reinit_desc = None
         self.relang = None
@@ -38,7 +41,7 @@ class Locale:
         self.collecting_inf = None
         self.about_sc = None
         self.try_error = None
-        self.not_installed2 = None
+        self.skip_not_installed = None
         self.decompression_error = None
         self.detected_comp = None
         self.unk_type = None

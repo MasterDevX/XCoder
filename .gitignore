@@ -4,6 +4,7 @@ In-Sprites-SC/
 Out-Compressed-SC/
 Out-Decompressed-SC/
 Out-Sprites-SC/
+updates/
 .idea/
 system/config.json
 *.pyc
