@@ -54,11 +54,13 @@ if is_windows:
     set_title = ctypes.windll.kernel32.SetConsoleTitleW
     del ctypes
 
+
     def clear():
         os.system('cls')
 else:
     def set_title(message):
         sys.stdout.write(f'\x1b]2;{message}\x07')
+
 
     def clear():
         os.system('clear')
@@ -338,8 +340,11 @@ class Reader:
     def __init__(self, data):
         self.stream = io.BytesIO(data)
 
-    def byte(self):
+    def ubyte(self):
         return int.from_bytes(self.stream.read(1), 'little')
+
+    def byte(self):
+        return int.from_bytes(self.stream.read(1), 'little', signed=True)
 
     def uint16(self):
         return int.from_bytes(self.stream.read(2), 'little')
@@ -355,7 +360,9 @@ class Reader:
 
     def string(self):
         length = self.byte()
-        return self.stream.read(length).decode()
+        if length != -1:
+            return self.stream.read(length).decode()
+        return ''
 
 
 def decompile_sc(file_name, current_sub_path, to_memory=False, folder=None, folder_export=None):
@@ -538,8 +545,8 @@ def decode_sc(file_name, folder, sheet_image, check_lowres=True):
     sprite_globals.matrix_count = reader.uint16()
     sprite_globals.color_transformation_count = reader.uint16()
 
-    sheet_data = [SheetData()] * sprite_globals.total_textures
-    sprite_data = [SpriteData()] * sprite_globals.shape_count
+    sheet_data = [SheetData() for x in range(sprite_globals.shape_count)]
+    sprite_data = [SpriteData() for x in range(sprite_globals.shape_count)]
 
     reader.uint32()
     reader.byte()
@@ -554,39 +561,26 @@ def decode_sc(file_name, folder, sheet_image, check_lowres=True):
 
     i = 1
     while data_length - reader.stream.tell():
-
         data_block_tag = '%02x' % reader.byte()
         data_block_size = reader.uint32()
 
-        if data_block_tag == '01' or data_block_tag == '18':
+        if data_block_tag in ['01', '18']:
             reader.byte()  # pixel_type
 
-            sheet_data[offset_sheet].pos = (reader.uint16(), reader.uint16())
+            sheet_data[offset_sheet].size = (reader.uint16(), reader.uint16())
 
-            if check_lowres and sheet_image[offset_sheet].size != sheet_data[offset_sheet].pos:
+            if check_lowres and sheet_image[offset_sheet].size != sheet_data[offset_sheet].size:
                 i = 2
 
             offset_sheet += 1
-
             continue
-
-        if data_block_tag == '1e':
-            continue
-        elif data_block_tag == '1a':
-            continue
-
-        elif data_block_tag == '00':
-            continue
-
         elif data_block_tag == '12':
-
             sprite_data[offset_shape].id = reader.uint16()
 
             regions_count = reader.uint16()
             reader.uint16()  # point_count
 
             for region_index in range(regions_count):
-
                 region = Region()
 
                 data_block_tag = '%02x' % reader.byte()
@@ -597,29 +591,26 @@ def decode_sc(file_name, folder, sheet_image, check_lowres=True):
 
                     region.num_points = reader.byte()
 
-                    region.shape_points = [Point()] * region.num_points
-                    region.sheet_points = [Point()] * region.num_points
+                    region.shape_points = [Point() for x in range(region.num_points)]
+                    region.sheet_points = [Point() for x in range(region.num_points)]
 
                     for z in range(region.num_points):
                         region.shape_points[z].x = reader.int32()
                         region.shape_points[z].y = reader.int32()
                     for z in range(region.num_points):
                         region.sheet_points[z].x = int(
-                            round(reader.uint16() * sheet_data[region.sheet_id].pos[0] / 65535) / i
+                            round(reader.uint16() * sheet_data[region.sheet_id].size[0] / 65535) / i
                         )
                         region.sheet_points[z].y = int(
-                            round(reader.uint16() * sheet_data[region.sheet_id].pos[1] / 65535) / i
+                            round(reader.uint16() * sheet_data[region.sheet_id].size[1] / 65535) / i
                         )
-
                 sprite_data[offset_shape].regions.append(region)
 
             reader.uint32()
             reader.byte()
 
             offset_shape += 1
-
             continue
-
         elif data_block_tag == '08':  # Matrix
             [reader.int32() for i in range(6)]
             continue
@@ -645,6 +636,23 @@ def decode_sc(file_name, folder, sheet_image, check_lowres=True):
 
             for i in range(cnt2):
                 reader.string()
+
+            while True:
+                inline_data_type = reader.ubyte()
+                reader.ubyte()  # data_length
+
+                if inline_data_type == 0:
+                    break
+
+                if inline_data_type == 11:
+                    reader.int16()  # frame_id
+                    reader.string()  # frame_name
+                elif inline_data_type == 31:
+                    for x in range(4):
+                        reader.ubyte()
+                        reader.ubyte()
+                        reader.string()
+                        reader.string()
             continue
         else:
             reader.stream.read(data_block_size)
@@ -658,7 +666,7 @@ def decode_sc(file_name, folder, sheet_image, check_lowres=True):
             region_min_y = 32767
             region_max_y = -32767
             for z in range(region.num_points):
-                tmp_x, tmp_y = region.shape_points[z].pos
+                tmp_x, tmp_y = region.shape_points[z].position
 
                 if tmp_y > region.top:
                     region.top = tmp_y
@@ -671,7 +679,7 @@ def decode_sc(file_name, folder, sheet_image, check_lowres=True):
 
                 sheetpoint = region.sheet_points[z]
 
-                tmp_x, tmp_y = sheetpoint.pos
+                tmp_x, tmp_y = sheetpoint.position
 
                 if tmp_x < region_min_x:
                     region_min_x = tmp_x
@@ -701,22 +709,25 @@ def cut_sprites(sprite_globals, sprite_data, sheet_data, sheet_image, xcod, fold
     xcod.write(struct.pack('>H', sprite_globals.shape_count))
 
     for x in range(sprite_globals.shape_count):
-        xcod.write(struct.pack('>H', sprite_data[x].total_regions))
+        xcod.write(struct.pack('>H', len(sprite_data[x].regions)))
 
         Console.progress_bar(locale.cut_sprites % (x + 1, sprite_globals.shape_count), x, sprite_globals.shape_count)
 
-        for y in range(sprite_data[x].total_regions):
-
-            region = sprite_data[x].regions[y]
-
-            polygon = [region.sheet_points[z].pos for z in range(region.num_points)]
+        for region_index in range(len(sprite_data[x].regions)):
+            region = sprite_data[x].regions[region_index]
+            polygon = [region.sheet_points[z].position for z in range(region.num_points)]
 
             xcod.write(
-                struct.pack('>2B2H', region.sheet_id, region.num_points, *sheet_data[region.sheet_id].pos) + b''.join(
-                    struct.pack('>2H', *i) for i in polygon) + struct.pack('?B', region.mirroring,
-                                                                           region.rotation // 90))
+                struct.pack(
+                    '>2B2H',
+                    region.sheet_id,
+                    region.num_points,
+                    *sheet_data[region.sheet_id].size
+                ) + b''.join(struct.pack('>2H', *i) for i in polygon) +
+                struct.pack('?B', region.mirroring, region.rotation // 90)
+            )
 
-            img_mask = Image.new('L', sheet_data[region.sheet_id].pos, 0)
+            img_mask = Image.new('L', sheet_data[region.sheet_id].size, 0)
             ImageDraw.Draw(img_mask).polygon(polygon, fill=255)
             bbox = img_mask.getbbox()
             if not bbox:
@@ -730,7 +741,7 @@ def cut_sprites(sprite_globals, sprite_data, sheet_data, sheet_image, xcod, fold
                 tmp_region = tmp_region.transform(region_size, Image.EXTENT, (region_size[0], 0, 0, region_size[1]))
 
             tmp_region.rotate(region.rotation, expand=True) \
-                .save(f'{folder_export}/{x}_{y}.png')
+                .save(f'{folder_export}/{x}_{region_index}.png')
     print()
 
 
@@ -753,9 +764,9 @@ def place_sprites(xcod, folder):
 
         Console.progress_bar(locale.place_sprites % (x + 1, shape_count), x, shape_count)
 
-        total_regions, = struct.unpack('>H', xcod.read(2))
+        regions_count, = struct.unpack('>H', xcod.read(2))
 
-        for y in range(total_regions):
+        for y in range(regions_count):
 
             sheet_id, num_points, x1, y1 = struct.unpack('>2B2H', xcod.read(6))
             polygon = [unpack('>2H', xcod.read(4)) for unpack in [struct.unpack] * num_points]
@@ -789,8 +800,8 @@ def place_sprites(xcod, folder):
 
 def region_rotation(region):
     def calc_sum(points):
-        x1, y1 = points[(z + 1) % num_points].pos
-        x2, y2 = points[z].pos
+        x1, y1 = points[(z + 1) % num_points].position
+        x2, y2 = points[z].position
         return (x1 - x2) * (y1 + y2)
 
     sum_sheet = 0
@@ -808,13 +819,13 @@ def region_rotation(region):
 
     if region.mirroring:
         for x in range(num_points):
-            pos = region.shape_points[x].pos
-            region.shape_points[x].pos = (pos[0] * - 1, pos[1])
+            pos = region.shape_points[x].position
+            region.shape_points[x].position = (pos[0] * - 1, pos[1])
 
-    pos00 = region.sheet_points[0].pos
-    pos01 = region.sheet_points[1].pos
-    pos10 = region.shape_points[0].pos
-    pos11 = region.shape_points[1].pos
+    pos00 = region.sheet_points[0].position
+    pos01 = region.sheet_points[1].position
+    pos10 = region.shape_points[0].position
+    pos11 = region.shape_points[1].position
 
     if pos01[0] > pos00[0]:
         px = 1

@@ -1,6 +1,21 @@
+class Point:
+    def __init__(self):
+        self.x = 0
+        self.y = 0
+
+    @property
+    def position(self):
+        return self.x, self.y
+
+    @position.setter
+    def position(self, value):
+        self.x = value[0]
+        self.y = value[1]
+
+
 class SheetData:
     def __init__(self):
-        self.pos = (0, 0)
+        self.size = (0, 0)
 
 
 class SpriteGlobals:
@@ -33,13 +48,3 @@ class Region:
         self.bottom = 32767
         self.right = -32767
         self.size = (0, 0)
-
-
-class Point:
-    def __init__(self):
-        self.x = 0
-        self.y = 0
-
-    @property
-    def pos(self):
-        return self.x, self.y

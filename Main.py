@@ -128,7 +128,7 @@ def sc1_decode():
                     )
                     Console.info(locale.dec_sc)
                     sprite_globals, sprite_data, sheet_data = decode_sc(sc_file, folder, sheet_image)
-                    xc = open(f'{folder_export}/{current_sub_path}' + file[:-3] + '.xcod', 'wb')
+                    xc = open(f'{folder_export}/{current_sub_path}/{file[:-3]}.xcod', 'wb')
                     xc.write(xcod)
                     cut_sprites(
                         sprite_globals,
