@@ -545,7 +545,7 @@ def decode_sc(file_name, folder, sheet_image, check_lowres=True):
     sprite_globals.matrix_count = reader.uint16()
     sprite_globals.color_transformation_count = reader.uint16()
 
-    sheet_data = [SheetData() for x in range(sprite_globals.shape_count)]
+    sheet_data = [SheetData() for x in range(sprite_globals.total_textures)]
     sprite_data = [SpriteData() for x in range(sprite_globals.shape_count)]
 
     reader.uint32()
@@ -629,17 +629,17 @@ def decode_sc(file_name, folder, sheet_image, check_lowres=True):
             cnt2 = reader.uint16()
 
             for i in range(cnt2):
-                reader.uint16()
+                reader.uint16()  # bind_id
 
             for i in range(cnt2):
-                reader.byte()
+                reader.byte()  # blend
 
             for i in range(cnt2):
-                reader.string()
+                reader.string()  # bind_name
 
             while True:
                 inline_data_type = reader.ubyte()
-                reader.ubyte()  # data_length
+                reader.int32()  # data_length
 
                 if inline_data_type == 0:
                     break
