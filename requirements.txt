@@ -1,4 +1,5 @@
 sc-compression
 requests
 colorama
+pylzham
 pillow
