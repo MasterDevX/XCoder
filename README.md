@@ -2,13 +2,9 @@
 Compress / Decompress Brawl Stars SC files on Windows / Linux / Android!
 
 ### Credits
-This tool is based on:
-- <a href="https://github.com/Xset-s/png2sc">png2sc</a>, Developer: <a href="https://github.com/Xset-s">Xset-s</a>
-- <a href="https://github.com/Galaxy1036/scPacker">scPacker</a>, Developer: <a href="https://github.com/Galaxy1036">Galaxy1036</a></br>
-- <a href="https://github.com/Galaxy1036/sc_decode">sc_decode</a>, Developer: <a href="https://github.com/Galaxy1036">Galaxy1036</a></br>
+This tool is based on Original <a href="https://github.com/MasterDevX/xcoder">XCoder</a>, Developer: <a href="https://github.com/MasterDevX">MasterDevX</a></br>
 
-I wanna say "Thank You!" to these developers, because without their work XCoder wouldn't have been released!</br>
-Special thanks to <a href="https://github.com/spiky-s">spiky_Spike</a> for help with XCoder updates :)
+Many thanks to <a href="https://github.com/spiky-s">spiky_Spike</a> for the provided developments
 
 ### Features:
 - Easy to use.

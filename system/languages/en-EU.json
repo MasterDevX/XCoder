@@ -63,5 +63,15 @@
     "want_exit": "Want to exit?",
     "dec_sc": "Decoding .sc file...",
     "dec_sc_tex": "Decoding _tex.sc file...",
-    "error": "ERROR! (%s.%s: %s)"
+    "error": "ERROR! (%s.%s: %s)",
+    "e1sc1": "Overwrite SC sprites",
+	"cgl": "Changelog:\n%s\n",
+	"upd_av": "\nUpdate is available!\nVersion: %s\n",
+	"upd_qu": "Do you want to update?",
+	"upd": "Updating...",
+	"upd_ck": "Checking for updates...",
+	"bkp": "Backing up current version...",
+	"stp": "Installing...",
+	"pause": "Press any key to continue . . .",
+	"margin_qu": "Consider edge margins?"
 }

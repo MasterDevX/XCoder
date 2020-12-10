@@ -70,6 +70,19 @@ class Locale:
         self.dec_sc_tex = None
         self.error = None
 
+        # new
+        self.e1sc1 = None
+        self.cgl = None
+        self.upd_av = None
+        self.upd_qu = None
+        self.upd = None
+        self.upd_ck = None
+        self.bkp = None
+        self.stp = None
+        self.pause = None
+        # self.aupd_qu = None
+        self.margin_qu = None
+
     def load_from(self, language: str):
         language_filepath = 'system/languages/' + language + '.json'
         english_language_filepath = 'system/languages/en-EU.json'

@@ -18,6 +18,15 @@ class SheetData:
         self.size = (0, 0)
 
 
+class MovieClip:
+    def __init__(self):
+        self.name = None
+        self.fps = None
+        self.frames_count = None
+        self.shapes = []
+        self.blends = []
+
+
 class SpriteGlobals:
     def __init__(self):
         self.shape_count = 0

@@ -48,8 +48,15 @@ def init(ret=True):
     config.update({'inited': True, 'version': get_tags('vorono4ka', 'xcoder')[0]['name'][1:]})
     json.dump(config, open(cfg_path, 'w'))
 
+    params()
+
     if ret:
         input(locale.to_continue)
+
+
+def params():
+    # config.update({'autoupdate': Console.question(locale.aupd_qu), 'use_margins': Console.question(locale.marg_qu)})
+    json.dump(config, open(cfg_path, 'w'))
 
 
 def clear_dirs():
@@ -58,7 +65,8 @@ def clear_dirs():
         for k in ['Compressed', 'Decompressed', 'Sprites']:
             folder = f'{i}-{k}-SC'
             if folder in files:
-                shutil.rmtree(folder)
+                if os.path.isdir(folder):
+                    shutil.rmtree(folder)
                 os.system(f'mkdir {folder}{nul}')
 
 
@@ -122,16 +130,15 @@ def sc1_decode():
                     sheet_image, xcod = decompile_sc(
                         file,
                         current_sub_path,
-                        True,
                         folder,
-                        folder_export
+                        folder_export,
+                        True
                     )
                     Console.info(locale.dec_sc)
-                    sprite_globals, sprite_data, sheet_data = decode_sc(sc_file, folder, sheet_image)
+                    sprite_globals, sprite_data, sheet_data = decode_sc(sc_file, folder)
                     xc = open(f'{folder_export}/{current_sub_path}/{file[:-3]}.xcod', 'wb')
                     xc.write(xcod)
                     cut_sprites(
-                        sprite_globals,
                         sprite_data,
                         sheet_data,
                         sheet_image,
@@ -146,7 +153,7 @@ def sc1_decode():
             print()
 
 
-def sc1_encode():
+def sc1_encode(overwrite: bool = False):
     global errors
     folder = './In-Sprites-SC/'
     folder_export = './Out-Compressed-SC/'
@@ -161,7 +168,7 @@ def sc1_encode():
         else:
             try:
                 Console.info(locale.dec_sc_tex)
-                sheet_image, sheet_image_data = place_sprites(f'{folder}{file}/{xcod}', f'{folder}{file}')
+                sheet_image, sheet_image_data = place_sprites(f'{folder}{file}/{xcod}', f'{folder}{file}', overwrite)
                 Console.info(locale.dec_sc)
                 compile_sc(f'{folder}{file}/', sheet_image, sheet_image_data, folder_export)
             except Exception as e:
@@ -222,30 +229,18 @@ if __name__ == '__main__':
 
             clear()
             answer = welcome_text()
-            print()
-            if answer == '1':
-                sc_decode()
-            elif answer == '2':
-                sc_encode()
-            elif answer == '3':
-                sc1_decode()
-            elif answer == '4':
-                sc1_encode()
-            elif answer == '101':
-                check_update()
-            elif answer == '102':
-                init(ret=False)
-            elif answer == '103':
-                select_lang()
-                locale.load_from(config['lang'])
-            elif answer == '104':
-                if not Console.question(locale.clear_qu):
-                    continue
-                clear_dirs()
-            elif answer == '105':
-                clear()
-                break
-            else:
+            if {
+                '1': sc_decode,
+                '2': sc_encode,
+                '3': sc1_decode,
+                '4': sc1_encode,
+                '5': lambda: sc1_encode(True),
+                '101': check_update,
+                '102': lambda: init(ret=False),
+                '103': lambda: (select_lang(), locale.load_from(config['lang'])),
+                '104': lambda: clear_dirs() if Console.question(locale.clear_qu) else 'null',
+                '105': lambda: (clear(), exit())
+            }.get(answer, lambda: 'null')() == 'null':
                 continue
 
             if errors > 0:
@@ -253,7 +248,7 @@ if __name__ == '__main__':
             else:
                 Console.done_text(locale.done)
 
-            input(locale.to_continue)
+            pause()
 
         except KeyboardInterrupt:
             if Console.question(locale.want_exit):
