@@ -160,8 +160,6 @@ def sc1_encode(overwrite: bool = False):
     files = os.listdir(folder)
 
     for file in files:
-        print(file)
-
         xcod = file + '.xcod'
         if xcod not in os.listdir(f'{folder}{file}/'):
             Console.error(locale.not_found % xcod)

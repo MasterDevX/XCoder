@@ -167,7 +167,6 @@ def download_update(zip_url):
 
         Console.done_text(locale.update_done % f'"{zf.namelist()[0]}"')
         config.update({'updated': False})
-        print(config)
         json.dump(config, open(config_path, 'w'))
         input(locale.to_continue)
         exit()
@@ -780,7 +779,7 @@ def cut_sprites(movie_clips, sheet_data, sheet_image, xcod, folder_export):
                     tmp_region = tmp_region.transform(region_size, Image.EXTENT, (region_size[0], 0, 0, region_size[1]))
 
                 tmp_region.rotate(region.rotation, expand=True) \
-                    .save(f'{folder_export}/{movieclip.name}_{movieclip_index}_{y}.png')
+                    .save(f'{folder_export}/{movieclip.name}_{shape_index}_{y}.png')
     print()
 
 
@@ -817,7 +816,7 @@ def place_sprites(xcod, folder, overwrite=False, margins=False):
                 mirroring, rotation = xcod.ubyte() == 1, xcod.ubyte()
                 rotation *= 90
 
-                if f'{clip_index}_{region_index}.png' not in files:
+                if f'{clip_name}_{shape_index}_{region_index}.png' not in files:
                     continue
 
                 tmp_region = Image.open(

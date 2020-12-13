@@ -59,7 +59,7 @@
     "not_found": "\"%s\" file isn\"t found!",
     "cut_sprites": "Cutting sprites... (%s/%s)",
     "place_sprites": "Placing sprites... (%s/%s)",
-    "not_implemented": "This feature will be added in future updates.\nYou can follow XCoder updates here: github.com/MasterDevX/XCoder",
+    "not_implemented": "This feature will be added in future updates.\nYou can follow XCoder updates here: github.com/Vorono4ka/XCoder",
     "want_exit": "Want to exit?",
     "dec_sc": "Decoding .sc file...",
     "dec_sc_tex": "Decoding _tex.sc file...",
