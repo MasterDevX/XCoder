@@ -19,13 +19,13 @@ class Locale:
         self.to_continue = None
         self.experimental = None
         self.sc = None
-        self.dsc = None
-        self.dsc_desc = None
-        self.esc = None
-        self.esc_desc = None
-        self.d1sc = None
-        self.e1sc = None
-        self.oth = None
+        self.decode_sc = None
+        self.decode_sc_desc = None
+        self.encode_sc = None
+        self.encode_sc_desc = None
+        self.decode_by_parts = None
+        self.encode_by_parts = None
+        self.other_features = None
         self.check_update = None
         self.version = None
         self.not_latest = None
@@ -83,6 +83,9 @@ class Locale:
         # self.aupd_qu = None
         self.margin_qu = None
 
+        self.decompress_csv = None
+        self.compress_csv = None
+
     def load_from(self, language: str):
         language_filepath = 'system/languages/' + language + '.json'
         english_language_filepath = 'system/languages/en-EU.json'
@@ -97,10 +100,3 @@ class Locale:
                 setattr(self, key, loaded_locale[key])
                 continue
             setattr(self, key, english_locale[key])
-
-
-if __name__ == '__main__':
-    locale = Locale()
-    locale.load_from('ru-RU')
-
-    print(locale.xcoder % '0.1')

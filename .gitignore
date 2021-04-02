@@ -1,9 +1,5 @@
-In-Compressed-SC/
-In-Decompressed-SC/
-In-Sprites-SC/
-Out-Compressed-SC/
-Out-Decompressed-SC/
-Out-Sprites-SC/
+SC/
+CSV/
 updates/
 .idea/
 system/config.json
