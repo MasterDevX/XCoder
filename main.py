@@ -8,6 +8,15 @@ clear()
 cfg_path = './system/config.json'
 
 
+def get_pip_info(outdated: bool = False) -> list:
+    output = get_run_output(f'pip --disable-pip-version-check list {"-o" if outdated else ""}')
+    output = output.splitlines()
+    output = output[2:]
+    packages = [package.split() for package in output]
+
+    return packages
+
+
 def select_lang():
     lang = input(
         'Select Language\n'
@@ -30,20 +39,24 @@ def select_lang():
 def init(ret=True):
     if ret:
         clear()
+
     Console.info(locale.detected_os % platform.system())
     Console.info(locale.installing)
-    os.system(f'pip3 install -r requirements.txt{nul}')
+
+    required_packages = [pkg.rstrip('\n').lower() for pkg in open('requirements.txt').readlines()]
+    installed_packages = [pkg[0].lower() for pkg in get_pip_info()]
+    for package in required_packages:
+        if package in installed_packages:
+            continue
+
+        if run(f'pip3 install {package}'):
+            Console.info(locale.installed % package)
+        else:
+            Console.info(locale.not_installed % package)
     Console.info(locale.crt_workspace)
     [[make_dirs(f'SC/{i}-{k}') for k in ['Compressed', 'Decompressed', 'Sprites']] for i in ['In', 'Out']]
     [[make_dirs(f'CSV/{i}-{k}') for k in ['Compressed', 'Decompressed']] for i in ['In', 'Out']]
     Console.info(locale.verifying)
-    for i in ['colorama', 'PIL', 'sc_compression', 'requests']:
-        try:
-            [exec(f'{k} {i}') for k in ['import', 'del']]
-            Console.info(locale.installed % i)
-        except Exception as exception:
-            logger.write(exception)
-            Console.info(locale.not_installed % i)
 
     config.update({'inited': True, 'version': get_tags('vorono4ka', 'xcoder')[0]['name'][1:]})
     json.dump(config, open(cfg_path, 'w'))
@@ -256,10 +269,18 @@ if __name__ == '__main__':
     if not config['inited']:
         init()
         try:
-            os.system('python%s "%s"' % ('' if is_windows else '3', __file__))
+            run('python%s "%s"' % ('' if is_windows else '3', __file__))
         except Exception as e:
             logger.write(e)
         exit()
+
+    if is_windows:
+        import ctypes
+        ctypes.windll.kernel32.SetConsoleTitleW(locale.xcoder % config['version'])
+        del ctypes
+
+    if (not ('last_update' in config)) or time.time() - config['last_update'] > 60*60*24*7:
+        check_update()
 
     if not config['updated']:
         Console.done_text(locale.update_done % '')
@@ -267,21 +288,19 @@ if __name__ == '__main__':
             latest_tag = get_tags('vorono4ka', 'xcoder')[0]
             latest_tag_name = latest_tag['name'][1:]
 
-            config.update({'updated': True, 'version': latest_tag_name})
+            required_packages = [pkg.rstrip('\n').lower() for pkg in open('requirements.txt').readlines()]
+            outdated_packages = [pkg[0].lower() for pkg in get_pip_info(True)]
+            for package in required_packages:
+                if package in outdated_packages:
+                    run(f'pip3 install --upgrade {package}')
+
+            config.update({'updated': True, 'version': latest_tag_name, 'last_update': int(time.time())})
             json.dump(config, open(config_path, 'w'))
-
-            try:
-                os.system('python%s "%s"' % ('' if is_windows else '3', __file__))
-            except Exception as e:
-                logger.write(e)
         exit()
-
-    set_title(locale.xcoder % config['version'])
 
     while 1:
         try:
             errors = 0
-            [os.remove(i) for i in ('temp.sc', '_temp.sc') if os.path.isfile(i)]
 
             clear()
             answer = welcome_text()

@@ -1,5 +1,3 @@
-from sc_compression.signatures import Signatures
-
 from system.bytestream import Reader, Writer
 from system.localization import Locale
 from system.lib.console import Console
@@ -22,9 +20,11 @@ try:
     import traceback
     import subprocess
     import colorama
-
+    import tempfile
+    
     from sc_compression.decompressor import Decompressor
     from sc_compression.compressor import Compressor
+    from sc_compression.signatures import Signatures
 
     from PIL import Image, ImageDraw
 except Exception as e:
@@ -33,12 +33,12 @@ except Exception as e:
 lzham_path = r'system\lzham'
 
 is_windows = platform.system() == 'Windows'
-nul = f' > {"nul" if is_windows else "/dev/null"} 2>&1'
+null_output = f'{"nul" if is_windows else "/dev/null"} 2>&1'
 
 locale = Locale()
 config_path = './system/config.json'
 
-config = {'inited': False, 'version': None, 'lang': 'en-EU', 'updated': True}
+config = {'inited': False, 'version': None, 'lang': 'en-EU', 'updated': True, 'last_update': -1}
 if os.path.isfile(config_path):
     try:
         config = json.load(open(config_path))
@@ -47,16 +47,29 @@ if os.path.isfile(config_path):
 json.dump(config, open(config_path, 'w'))
 locale.load_from(config['lang'])
 
+
+def run(command: str, output_path: str = null_output):
+    return os.system(f'{command} > {output_path}')
+
+
+def get_run_output(command: str):
+    temp_filename = tempfile.mktemp('.temp')
+    run(command, temp_filename)
+
+    with open(temp_filename) as f:
+        file_data = f.read()
+        f.close()
+
+    os.remove(temp_filename)
+
+    return file_data
+
+
 if is_windows:
     try:
         colorama.init()
     except Exception as e:
         logger.write(e)
-
-    import ctypes
-
-    set_title = ctypes.windll.kernel32.SetConsoleTitleW
-    del ctypes
 
 
     def clear():
@@ -65,18 +78,14 @@ if is_windows:
 
     def pause():
         print(locale.pause, end='')
-        os.system(f'pause{nul}')
+        run('pause')
 else:
-    def set_title(message):
-        sys.stdout.write(message)
-
-
     def clear():
         os.system('clear')
 
 
     def pause():
-        if os.system(f'read -s -n 1 -p "{locale.pause}"'):
+        if run(f'read -s -n 1 -p "{locale.pause}"'):
             input(locale.to_continue)
 
 
@@ -120,13 +129,12 @@ def welcome_text():
     console_width = shutil.get_terminal_size().columns
     print(
         (
-                colorama.Back.BLACK + colorama.Fore.GREEN +
-                locale.xcoder % config['version'] +
-                colorama.Style.RESET_ALL
+            colorama.Back.BLACK + colorama.Fore.GREEN +
+            locale.xcoder % config['version'] +
+            colorama.Style.RESET_ALL
         ).center(console_width + 14)
     )
     print('github.com/Vorono4ka/XCoder'.center(console_width))
-    print('Modified by Vorono4ka'.center(console_width))
     print(console_width * '-')
 
     colored_print(locale.sc)
@@ -153,14 +161,18 @@ def welcome_text():
 
 def get_tags(owner: str, repo: str):
     api_url = 'https://api.github.com'
+    tags = []
 
-    tags = requests.get(api_url + '/repos/{owner}/{repo}/tags'.format(owner=owner, repo=repo)).json()
-    tags = [
-        {
-            key: v for key, v in tag.items()
-            if key in ['name', 'zipball_url']
-        } for tag in tags
-    ]
+    try:
+        tags = requests.get(api_url + '/repos/{owner}/{repo}/tags'.format(owner=owner, repo=repo)).json()
+        tags = [
+            {
+                key: v for key, v in tag.items()
+                if key in ['name', 'zipball_url']
+            } for tag in tags
+        ]
+    except Exception:
+        pass
 
     return tags
 
@@ -417,6 +429,8 @@ def decompile_sc(file_name, current_sub_path, folder=None, folder_export=None, t
         os.makedirs(f"{folder_export}/{current_sub_path}/textures", exist_ok=True)
 
     while 1:
+        base_name = os.path.basename(file_name)[::-1].split('.', 1)[1][::-1] + '_' * pictures_count
+
         temp = reader.read(5)
         if temp == bytes(5):
             data = struct.pack('4s?B', b'XCOD', use_lzham, pictures_count) + sc_data.getvalue()
@@ -429,7 +443,6 @@ def decompile_sc(file_name, current_sub_path, folder=None, folder_export=None, t
 
         file_type, file_size, sub_type, width, height = struct.unpack('<BIBHH', temp + reader.read(5))
 
-        base_name = os.path.basename(file_name)[::-1].split('.', 1)[1][::-1] + '_' * pictures_count
         Console.info(locale.about_sc % (base_name, file_type, file_size, sub_type, width, height))
 
         img = Image.new(pixel_type2str(sub_type), (width, height))
