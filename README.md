@@ -32,4 +32,4 @@ On Android:
 - In PyDroid open and execute "main.py" file</br>
 
 ### TODO:
-- CSV compilation / decompilation.
+- CSV updating.
