@@ -36,11 +36,12 @@ class Reader(io.BytesIO):
 
 
 class Writer(io.BytesIO):
-    def __init__(self):
+    def __init__(self, endian: str = 'little'):
         super().__init__()
+        self.endian = endian
 
     def write_int(self, integer, length: int = 1, signed: bool = False):
-        self.write(integer.to_bytes(length, 'little', signed=signed))
+        self.write(integer.to_bytes(length, self.endian, signed=signed))
 
     def ubyte(self, integer):
         self.write_int(integer)

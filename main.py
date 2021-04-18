@@ -152,7 +152,17 @@ def sc_decode():
                 shutil.rmtree(f'{folder_export}/{current_sub_path}')
             os.mkdir(f'{folder_export}/{current_sub_path}')
             try:
-                decompile_sc(file, current_sub_path, folder=folder, folder_export=folder_export)
+                swf = SupercellSWF()
+                use_lzham = swf.load_internal(f'{folder}/{file}', True)
+
+                data = struct.pack('4s?B', b'XCOD', use_lzham, len(swf.textures)) + swf.xcod_writer.getvalue()
+
+                base_name = os.path.basename(file).rsplit('.', 1)[0]
+                with open(f'{folder_export}/{current_sub_path}/{base_name.rstrip("_")}.xcod', 'wb') as xc:
+                    xc.write(data)
+                for img_index in range(len(swf.textures)):
+                    filename = base_name + '_' * img_index
+                    swf.textures[img_index].image.save(f'{folder_export}/{current_sub_path}/{filename}.png')
             except Exception as exception:
                 errors += 1
                 Console.error(locale.error % (exception.__class__.__module__, exception.__class__.__name__, exception))
@@ -194,27 +204,38 @@ def sc1_decode():
                 if os.path.isdir(f'{folder_export}/{current_sub_path}'):
                     shutil.rmtree(f'{folder_export}/{current_sub_path}')
                 os.mkdir(f'{folder_export}/{current_sub_path}')
+
+                xc = open(f'{folder_export}/{current_sub_path}/{file[:-3]}.xcod', 'wb')
                 try:
                     Console.info(locale.dec_sc_tex)
-                    sheet_image, xcod = decompile_sc(
-                        file,
-                        current_sub_path,
-                        folder,
-                        folder_export,
-                        True
-                    )
+
+                    swf = SupercellSWF()
+                    swf.load_internal(f'{folder}/{sc_file}', False)
+                    use_lzham = swf.load_internal(f'{folder}/{file}', True)
+                    data = struct.pack('4s?B', b'XCOD', use_lzham, len(swf.textures)) + swf.xcod_writer.getvalue()
+
+                    os.makedirs(f"{folder_export}/{current_sub_path}/textures", exist_ok=True)
+                    base_name = os.path.basename(file).rsplit('.', 1)[0]
+                    for img_index in range(len(swf.textures)):
+                        filename = base_name + '_' * img_index
+                        swf.textures[img_index].image.save(f'{folder_export}/{current_sub_path}/textures/{filename}.png')
+
+                    xc.write(data)
+
                     Console.info(locale.dec_sc)
-                    sprite_globals, sprite_data, sheet_data = decode_sc(sc_file, folder)
-                    xc = open(f'{folder_export}/{current_sub_path}/{file[:-3]}.xcod', 'wb')
-                    xc.write(xcod)
+
                     cut_sprites(
-                        sprite_data,
-                        sheet_data,
-                        sheet_image,
+                        swf.movie_clips,
+                        swf.textures,
                         xc,
                         f'{folder_export}/{current_sub_path}'
                     )
                 except Exception as exception:
+                    try:
+                        xc.close()
+                    except Exception:
+                        pass
+
                     errors += 1
                     Console.error(locale.error % (
                         exception.__class__.__module__,

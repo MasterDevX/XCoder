@@ -20,7 +20,9 @@ class SheetData:
 
 class MovieClip:
     def __init__(self):
-        self.name = None
+        super().__init__()
+
+        self.export_name = None
         self.fps = None
         self.frames_count = None
         self.shapes = []
@@ -30,8 +32,8 @@ class MovieClip:
 class SpriteGlobals:
     def __init__(self):
         self.shape_count = 0
-        self.total_animations = 0
-        self.total_textures = 0
+        self.movie_clips_count = 0
+        self.textures_count = 0
         self.text_field_count = 0
         self.matrix_count = 0
         self.color_transformation_count = 0
@@ -42,6 +44,16 @@ class SpriteData:
     def __init__(self):
         self.id = 0
         self.regions = []
+
+
+class SWFTexture:
+    def __init__(self):
+        self.width = 0
+        self.height = 0
+
+        self.pixel_type = -1
+
+        self.image = None
 
 
 class Region:

@@ -34,7 +34,7 @@
     "done_err": "DONE WITH %s ERRORS!\nFor more information check log.txt",
     "got_error": "[%s] Got error: \n%s\n\n",
     "collecting_inf": "Collecting information...",
-    "about_sc": "About: FileName: %s, FileType: %s, FileSize: %s, SubType: %s, Width: %s, Height: %s",
+    "about_sc": "About: Filename: %s, Pixel type: %s, Width: %s, Height: %s",
     "try_error": "Error while decompressing! Trying to decode as is...",
     "skip_not_installed": "%s isn\"t installed! Return",
     "decompression_error": "Decompression failed",

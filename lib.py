@@ -390,7 +390,7 @@ def write_sc(output_filename: str, buffer: bytes, use_lzham: bool):
 
             file_out.write(compressed)
         else:
-            Console.info(locale.compressing_with % 'LZMA')
+            Console.info(locale.compressing_with % 'ZSTD')
             compressed = compress(buffer, Signatures.SC)
             file_out.write(compressed)
         Console.info(locale.compression_done)
@@ -414,58 +414,6 @@ def open_sc(input_filename: str):
         fh.close()
 
     return decompressed, use_lzham
-
-
-def decompile_sc(file_name, current_sub_path, folder=None, folder_export=None, to_memory=False):
-    sc_data = Writer()
-    pictures_count = 0
-    images = []
-
-    decompressed, use_lzham = open_sc(f'{folder}/{file_name}')
-    reader = Reader(decompressed)
-    del decompressed
-
-    if to_memory:
-        os.makedirs(f"{folder_export}/{current_sub_path}/textures", exist_ok=True)
-
-    while 1:
-        base_name = os.path.basename(file_name)[::-1].split('.', 1)[1][::-1] + '_' * pictures_count
-
-        temp = reader.read(5)
-        if temp == bytes(5):
-            data = struct.pack('4s?B', b'XCOD', use_lzham, pictures_count) + sc_data.getvalue()
-            if not to_memory:
-                with open(f'{folder_export}/{current_sub_path}/{base_name.rstrip("_")}.xcod', 'wb') as xc:
-                    xc.write(data)
-                data = None
-
-            return images, data
-
-        file_type, file_size, sub_type, width, height = struct.unpack('<BIBHH', temp + reader.read(5))
-
-        Console.info(locale.about_sc % (base_name, file_type, file_size, sub_type, width, height))
-
-        img = Image.new(pixel_type2str(sub_type), (width, height))
-        pixels = []
-
-        bytes2rgba(reader, sub_type, img, pixels)
-
-        print()
-
-        if file_type in (27, 28):
-            join_image(img, pixels)
-            print()
-
-        Console.info(locale.png_save)
-        if to_memory:
-            img.save(f"{folder_export}/{current_sub_path}/textures/{base_name}.png")
-            images.append(img)
-        else:
-            img.save(f'{folder_export}/{current_sub_path}/{base_name}.png')
-        Console.info(locale.saved)
-        pictures_count += 1
-        sc_data.write(struct.pack('>BBHH', file_type, sub_type, width, height))
-        print()
 
 
 def compile_sc(_dir, from_memory=None, img_data=None, folder_export=None):
@@ -506,10 +454,10 @@ def compile_sc(_dir, from_memory=None, img_data=None, folder_export=None):
 
         if from_memory:
             file_type = img_data['data'][picture_index]['file_type']
-            sub_type = img_data['data'][picture_index]['sub_type']
+            pixel_type = img_data['data'][picture_index]['pixel_type']
         else:
             if has_xcod:
-                file_type, sub_type, width, height = struct.unpack('>BBHH', sc_data.read(6))
+                file_type, pixel_type, width, height = struct.unpack('>BBHH', sc_data.read(6))
 
                 if (width, height) != img.size:
                     Console.info(locale.illegal_size % (width, height, img.width, img.height))
@@ -517,29 +465,29 @@ def compile_sc(_dir, from_memory=None, img_data=None, folder_export=None):
                         Console.info(locale.resizing)
                         img = img.resize((width, height), Image.ANTIALIAS)
             else:
-                file_type, sub_type = 1, 0
+                file_type, pixel_type = 1, 0
 
         width, height = img.size
-        pixel_size = get_pixel_size(sub_type)
+        pixel_size = get_pixel_size(pixel_type)
 
         img = img.convert('RGBA')
         x = Image.new('RGBA', img.size, (0, 0, 0, 1))
         x.paste(img, (0, 0), img)
         img = x
 
-        img = img.convert(pixel_type2str(sub_type))
+        img = img.convert(pixel_type2str(pixel_type))
 
         file_size = width * height * pixel_size + 5
 
-        Console.info(locale.about_sc % (name + '_' * picture_index, file_type, file_size, sub_type, width, height))
+        Console.info(locale.about_sc % (name + '_' * picture_index, pixel_type, width, height))
 
-        sc.write(struct.pack('<BIBHH', file_type, file_size, sub_type, width, height))
+        sc.write(struct.pack('<BIBHH', file_type, file_size, pixel_type, width, height))
 
         if file_type in (27, 28):
             split_image(img)
             print()
 
-        rgba2bytes(sc, img, sub_type)
+        rgba2bytes(sc, img, pixel_type)
         print()
 
     sc.write(bytes(5))
@@ -552,202 +500,252 @@ def ceil(integer) -> int:
     return round(integer + 0.5)
 
 
-def decode_sc(file_name, folder):
-    decompressed, use_lzham = open_sc(f'{folder}/{file_name}')
-    reader = Reader(decompressed)
-    del decompressed
+class SupercellSWF:
+    def __init__(self):
+        self.filename = None
+        self.reader = None
 
-    offset_shape = 0
-    offset_sheet = 0
+        self.sprite_globals = SpriteGlobals()
+        self.sprite_data = []
+        self.exports = {}
 
-    sprite_globals = SpriteGlobals()
+        self.shapes = {}
+        self.movie_clips = {}
+        self.textures = []
 
-    sprite_globals.shape_count = reader.uint16()
-    sprite_globals.total_animations = reader.uint16()
-    sprite_globals.total_textures = reader.uint16()
-    sprite_globals.text_field_count = reader.uint16()
-    sprite_globals.matrix_count = reader.uint16()
-    sprite_globals.color_transformation_count = reader.uint16()
+        self.xcod_writer = Writer('big')
 
-    sheet_data = [_class() for _class in [SheetData] * sprite_globals.total_textures]
-    sprite_data = [_class() for _class in [SpriteData] * sprite_globals.shape_count]
+    def get_export_by_id(self, movie_clip):
+        return self.exports.get(movie_clip, '_movieclip_%s' % movie_clip)
+    
+    def load_internal(self, filepath: str, is_texture: bool):
+        decompressed, use_lzham = open_sc(filepath)
+        self.reader = Reader(decompressed)
+        del decompressed
 
-    reader.uint32()
-    reader.byte()
-
-    sprite_globals.export_count = reader.uint16()
-
-    exports = [_function() for _function in [reader.uint16] * sprite_globals.export_count]
-    exports = {i: reader.string() for i in exports}
-
-    shapes = {}
-    movie_clips = {}
-
-    def get_export_by_id(movie_clip):
-        return exports.get(movie_clip, '_movieclip_%s' % movie_clip)
-
-    while True:
-        data_block_tag = '%02x' % reader.byte()
-        data_block_size = reader.uint32()
-
-        if data_block_tag in ['01', '18']:
-            reader.byte()  # pixel_type
-
-            sheet_data[offset_sheet].size = (reader.uint16(), reader.uint16())
-
-            offset_sheet += 1
-            continue
-        elif data_block_tag == '12':
-            sprite_data[offset_shape].id = reader.uint16()
-
-            regions_count = reader.uint16()
-            reader.uint16()  # point_count
-
-            for region_index in range(regions_count):
-                region = Region()
-
-                data_block_tag = '%02x' % reader.byte()
-
-                if data_block_tag == '16':
-                    reader.uint32()  # data_block_length
-                    region.sheet_id = reader.byte()
-
-                    region.num_points = reader.byte()
-
-                    region.shape_points = [_class() for _class in [Point] * region.num_points]
-                    region.sheet_points = [_class() for _class in [Point] * region.num_points]
-
-                    for z in range(region.num_points):
-                        region.shape_points[z].x = reader.int32()
-                        region.shape_points[z].y = reader.int32()
-                    for z in range(region.num_points):
-                        w, h = [reader.uint16() * sheet_data[region.sheet_id].size[i] / 0xffff for i in range(2)]
-                        x, y = [ceil(i) for i in (w, h)]
-                        if int(w) == x:
-                            x += 1
-                        if int(h) == y:
-                            y += 1
-
-                        region.sheet_points[z].position = (x, y)
-                sprite_data[offset_shape].regions.append(region)
-            shapes[sprite_data[offset_shape].id] = sprite_data[offset_shape]
-
-            reader.uint32()
-            reader.byte()
-
-            offset_shape += 1
-            continue
-        elif data_block_tag == '08':  # Matrix
-            reader.int32()
-            reader.int32()
-            reader.int32()
-            reader.int32()
-            reader.int32()
-            reader.int32()
-            continue
-        elif data_block_tag == '0c':  # MovieClip
-            movie_clip_id = reader.uint16()
-
-            if not movie_clips.get(movie_clip_id):
-                movie_clips[movie_clip_id] = MovieClip()
-
-            movie_clips[movie_clip_id].name = get_export_by_id(movie_clip_id)
-            movie_clips[movie_clip_id].fps = reader.byte()
-            movie_clips[movie_clip_id].frames_count = reader.uint16()
-
-            cnt1 = reader.uint32()
-
-            for i in range(cnt1):
-                reader.uint16()
-                reader.uint16()
-                reader.uint16()
-
-            cnt2 = reader.uint16()
-
-            for i in range(cnt2):
-                bind_id = reader.uint16()  # bind_id
-                if bind_id in shapes:
-                    movie_clips[movie_clip_id].shapes.append(shapes[bind_id])
-
-            for i in range(cnt2):
-                blend = reader.byte()  # blend
-                movie_clips[movie_clip_id].blends.append(blend)
-
-            for i in range(cnt2):
-                reader.string()  # bind_name
-
-            while True:
-                inline_data_type = reader.ubyte()
-                reader.int32()  # data_length
-
-                if inline_data_type == 0:
-                    break
-
-                if inline_data_type == 11:
-                    reader.int16()  # frame_id
-                    reader.string()  # frame_name
-                elif inline_data_type == 31:
-                    for x in range(4):
-                        reader.ubyte()
-                        reader.ubyte()
-                        reader.string()
-                        reader.string()
-            continue
-        elif data_block_tag == '00':
-            break
+        self.filename = os.path.basename(filepath)
+    
+        if is_texture:
+            self.load_tags()
         else:
-            reader.read(data_block_size)
+            self.sprite_globals.shape_count = self.reader.uint16()
+            self.sprite_globals.movie_clips_count = self.reader.uint16()
+            self.sprite_globals.textures_count = self.reader.uint16()
+            self.sprite_globals.text_field_count = self.reader.uint16()
+            self.sprite_globals.matrix_count = self.reader.uint16()
+            self.sprite_globals.color_transformation_count = self.reader.uint16()
+    
+            self.textures = [_class() for _class in [SWFTexture] * self.sprite_globals.textures_count]
+            self.sprite_data = [_class() for _class in [SpriteData] * self.sprite_globals.shape_count]
+    
+            self.reader.uint32()
+            self.reader.byte()
+    
+            self.sprite_globals.export_count = self.reader.uint16()
 
-    for movieclip in movie_clips.values():
-        for shape_index in range(len(movieclip.shapes)):
-            for region_index in range(len(movieclip.shapes[shape_index].regions)):
-                region = movieclip.shapes[shape_index].regions[region_index]
+            self.exports = [_function() for _function in [self.reader.uint16] * self.sprite_globals.export_count]
+            self.exports = {export_id: self.reader.string() for export_id in self.exports}
+    
+            self.load_tags()
+        
+            for movieclip in self.movie_clips.values():
+                for shape_index in range(len(movieclip.shapes)):
+                    for region_index in range(len(movieclip.shapes[shape_index].regions)):
+                        region = movieclip.shapes[shape_index].regions[region_index]
 
-                region_min_x = 32767
-                region_max_x = -32767
-                region_min_y = 32767
-                region_max_y = -32767
-                for z in range(region.num_points):
-                    tmp_x, tmp_y = region.shape_points[z].position
+                        region_min_x = 32767
+                        region_max_x = -32767
+                        region_min_y = 32767
+                        region_max_y = -32767
+                        for z in range(region.num_points):
+                            tmp_x, tmp_y = region.shape_points[z].position
 
-                    if tmp_y > region.top:
-                        region.top = tmp_y
-                    if tmp_x < region.left:
-                        region.left = tmp_x
-                    if tmp_y < region.bottom:
-                        region.bottom = tmp_y
-                    if tmp_x > region.right:
-                        region.right = tmp_x
+                            if tmp_y > region.top:
+                                region.top = tmp_y
+                            if tmp_x < region.left:
+                                region.left = tmp_x
+                            if tmp_y < region.bottom:
+                                region.bottom = tmp_y
+                            if tmp_x > region.right:
+                                region.right = tmp_x
 
-                    sheet_point = region.sheet_points[z]
+                            sheet_point = region.sheet_points[z]
 
-                    tmp_x, tmp_y = sheet_point.position
+                            tmp_x, tmp_y = sheet_point.position
 
-                    if tmp_x < region_min_x:
-                        region_min_x = tmp_x
-                    if tmp_x > region_max_x:
-                        region_max_x = tmp_x
-                    if tmp_y < region_min_y:
-                        region_min_y = tmp_y
-                    if tmp_y > region_max_y:
-                        region_max_y = tmp_y
+                            if tmp_x < region_min_x:
+                                region_min_x = tmp_x
+                            if tmp_x > region_max_x:
+                                region_max_x = tmp_x
+                            if tmp_y < region_min_y:
+                                region_min_y = tmp_y
+                            if tmp_y > region_max_y:
+                                region_max_y = tmp_y
 
-                region = region_rotation(region)
+                        region = region_rotation(region)
 
-                tmp_x, tmp_y = region_max_x - region_min_x, region_max_y - region_min_y
-                size = (tmp_x, tmp_y)
+                        tmp_x, tmp_y = region_max_x - region_min_x, region_max_y - region_min_y
+                        size = (tmp_x, tmp_y)
 
-                if region.rotation in (90, 270):
-                    size = size[::-1]
+                        if region.rotation in (90, 270):
+                            size = size[::-1]
 
-                region.size = size
+                        region.size = size
 
-                movieclip.shapes[shape_index].regions[region_index] = region
+                        movieclip.shapes[shape_index].regions[region_index] = region
+        return use_lzham
 
-    return sprite_globals, movie_clips, sheet_data
+    def load_tags(self):
+        has_texture = True
+    
+        offset_shape = 0
+        texture_id = 0
+    
+        while True:
+            tag = self.reader.byte()
+            length = self.reader.uint32()
+    
+            if tag == 0:
+                break
+            elif tag in [1, 16, 28, 29, 34, 19, 24, 27]:
+                if len(self.textures) <= texture_id:
+                    # Костыль, такого в либе нет, но ради фичи с вытаскиванием только текстур, можно и добавить)
+                    self.textures.append(SWFTexture())
+                texture = self.textures[texture_id]
+                texture.pixel_type = self.reader.byte()  # pixel_type
+                texture.width, texture.height = (self.reader.uint16(), self.reader.uint16())
+
+                if has_texture:
+                    Console.info(locale.about_sc % (self.filename, texture.pixel_type, texture.width, texture.height))
+
+                    img = Image.new(pixel_type2str(texture.pixel_type), (texture.width, texture.height))
+                    pixels = []
+
+                    bytes2rgba(self.reader, texture.pixel_type, img, pixels)
+
+                    print()
+
+                    if tag in (27, 28):
+                        join_image(img, pixels)
+                        print()
+                    print()
+
+                    self.xcod_writer.ubyte(tag)
+                    self.xcod_writer.ubyte(texture.pixel_type)
+                    self.xcod_writer.uint16(texture.width)
+                    self.xcod_writer.uint16(texture.height)
+                    texture.image = img
+
+                self.textures[texture_id] = texture
+                texture_id += 1
+                continue
+            elif tag in [2, 18]:
+                self.sprite_data[offset_shape].id = self.reader.uint16()
+    
+                regions_count = self.reader.uint16()
+                self.reader.uint16()  # point_count
+    
+                for region_index in range(regions_count):
+                    region = Region()
+    
+                    tag = self.reader.byte()
+    
+                    if tag == 22:
+                        self.reader.uint32()  # data_block_length
+                        region.sheet_id = self.reader.byte()
+    
+                        region.num_points = self.reader.byte()
+    
+                        region.shape_points = [_class() for _class in [Point] * region.num_points]
+                        region.sheet_points = [_class() for _class in [Point] * region.num_points]
+    
+                        for z in range(region.num_points):
+                            region.shape_points[z].x = self.reader.int32()
+                            region.shape_points[z].y = self.reader.int32()
+                        for z in range(region.num_points):
+                            w, h = [self.reader.uint16() * self.textures[region.sheet_id].width / 0xffff,
+                                    self.reader.uint16() * self.textures[region.sheet_id].height / 0xffff]
+                            x, y = [ceil(i) for i in (w, h)]
+                            if int(w) == x:
+                                x += 1
+                            if int(h) == y:
+                                y += 1
+    
+                            region.sheet_points[z].position = (x, y)
+                    self.sprite_data[offset_shape].regions.append(region)
+                self.shapes[self.sprite_data[offset_shape].id] = self.sprite_data[offset_shape]
+    
+                self.reader.uint32()
+                self.reader.byte()
+    
+                offset_shape += 1
+                continue
+            elif tag in [3, 10, 12, 14, 35]:  # MovieClip
+                movie_clip_id = self.reader.uint16()
+    
+                movieclip = self.movie_clips.get(movie_clip_id)
+                if not movieclip:
+                    movieclip = MovieClip()
+    
+                movieclip.export_name = self.get_export_by_id(movie_clip_id)
+                movieclip.fps = self.reader.byte()
+                movieclip.frames_count = self.reader.uint16()
+    
+                cnt1 = self.reader.uint32()
+    
+                for i in range(cnt1):
+                    self.reader.uint16()
+                    self.reader.uint16()
+                    self.reader.uint16()
+    
+                cnt2 = self.reader.uint16()
+    
+                for i in range(cnt2):
+                    bind_id = self.reader.uint16()  # bind_id
+                    if bind_id in self.shapes:
+                        movieclip.shapes.append(self.shapes[bind_id])
+    
+                for i in range(cnt2):
+                    blend = self.reader.byte()  # blend
+                    movieclip.blends.append(blend)
+    
+                for i in range(cnt2):
+                    self.reader.string()  # bind_name
+    
+                while True:
+                    inline_data_type = self.reader.ubyte()
+                    self.reader.int32()  # data_length
+    
+                    if inline_data_type == 0:
+                        break
+    
+                    if inline_data_type == 11:
+                        self.reader.int16()  # frame_id
+                        self.reader.string()  # frame_name
+                    elif inline_data_type == 31:
+                        for x in range(4):
+                            self.reader.ubyte()
+                            self.reader.ubyte()
+                            self.reader.string()
+                            self.reader.string()
+                self.movie_clips[movie_clip_id] = movieclip
+                continue
+            elif tag == 8:  # Matrix
+                self.reader.int32()
+                self.reader.int32()
+                self.reader.int32()
+                self.reader.int32()
+                self.reader.int32()
+                self.reader.int32()
+                continue
+            elif tag == 26:
+                has_texture = False
+                continue
+            else:
+                self.reader.read(length)
 
 
-def cut_sprites(movie_clips, sheet_data, sheet_image, xcod, folder_export):
+def cut_sprites(movie_clips, textures, xcod, folder_export):
     os.makedirs(f'{folder_export}/overwrite', exist_ok=True)
 
     movie_clips = list(movie_clips.values())
@@ -762,7 +760,7 @@ def cut_sprites(movie_clips, sheet_data, sheet_image, xcod, folder_export):
         )
         movieclip = movie_clips[movieclip_index]
 
-        n = movieclip.name.encode()
+        n = movieclip.export_name.encode()
         xcod.write(struct.pack('B', len(n)) + n + struct.pack('>H', len(movieclip.shapes)))
 
         for shape_index in range(len(movieclip.shapes)):
@@ -773,12 +771,12 @@ def cut_sprites(movie_clips, sheet_data, sheet_image, xcod, folder_export):
 
                 polygon = [region.sheet_points[z].position for z in range(region.num_points)]
 
-                xcod.write(struct.pack('>2B2H', region.sheet_id, region.num_points,
-                                       *sheet_data[region.sheet_id].size) + b''.join(
-                    struct.pack('>2H', *i) for i in polygon) + struct.pack('?B', region.mirroring,
-                                                                           region.rotation // 90))
+                texture = textures[region.sheet_id]
+                xcod.write(struct.pack('>2B2H', region.sheet_id, region.num_points, texture.width, texture.height) +
+                           b''.join(struct.pack('>2H', *i) for i in polygon) +
+                           struct.pack('?B', region.mirroring, region.rotation // 90))
 
-                img_mask = Image.new('L', sheet_data[region.sheet_id].size, 0)
+                img_mask = Image.new('L', (texture.width, texture.height), 0)
                 color = 255
                 ImageDraw.Draw(img_mask).polygon(polygon, fill=color)
                 bbox = img_mask.getbbox()
@@ -790,13 +788,13 @@ def cut_sprites(movie_clips, sheet_data, sheet_image, xcod, folder_export):
 
                     if max_y - min_y != 0:
                         for _y in range(max_y - min_y):
-                            img_mask.putpixel((max_x, min_y + _y), color)
+                            img_mask.putpixel((max_x - 1, min_y + _y - 1), color)
 
                     elif max_x - min_x != 0:
                         for _x in range(max_x - min_x):
-                            img_mask.putpixel((min_x + _x, max_y), color)
+                            img_mask.putpixel((min_x + _x - 1, max_y - 1), color)
                     else:
-                        img_mask.putpixel((max_x, max_y), color)
+                        img_mask.putpixel((max_x - 1, max_y - 1), color)
                     bbox = img_mask.getbbox()
 
                 a, b, c, d = bbox
@@ -810,16 +808,16 @@ def cut_sprites(movie_clips, sheet_data, sheet_image, xcod, folder_export):
                 region_size = (bbox[2] - bbox[0], bbox[3] - bbox[1])
 
                 tmp_region = Image.new('RGBA', region_size)
-                tmp_region.paste(sheet_image[region.sheet_id].crop(bbox), (0, 0), img_mask.crop(bbox))
+                tmp_region.paste(texture.image.crop(bbox), (0, 0), img_mask.crop(bbox))
                 if region.mirroring:
                     tmp_region = tmp_region.transform(region_size, Image.EXTENT, (region_size[0], 0, 0, region_size[1]))
 
                 tmp_region.rotate(region.rotation, expand=True) \
-                    .save(f'{folder_export}/{movieclip.name}_{shape_index}_{y}.png')
+                    .save(f'{folder_export}/{movieclip.export_name}_{shape_index}_{y}.png')
     print()
 
 
-def place_sprites(xcod, folder, overwrite=False, margins=False):
+def place_sprites(xcod, folder, overwrite=False):
     xcod = Reader(open(xcod, 'rb').read(), 'big')
     files = os.listdir(f'{folder}{"/overwrite" if overwrite else ""}')
     tex = os.listdir(f'{folder}/textures')
@@ -874,13 +872,13 @@ def place_sprites(xcod, folder, overwrite=False, margins=False):
 
                     if max_y - min_y != 0:
                         for _y in range(max_y - min_y):
-                            img_mask.putpixel((max_x, min_y + _y), color)
+                            img_mask.putpixel((max_x - 1, min_y + _y - 1), color)
 
                     elif max_x - min_x != 0:
                         for _x in range(max_x - min_x):
-                            img_mask.putpixel((min_x + _x, max_y), color)
+                            img_mask.putpixel((min_x + _x - 1, max_y - 1), color)
                     else:
-                        img_mask.putpixel((max_x, max_y), color)
+                        img_mask.putpixel((max_x - 1, max_y - 1), color)
                     bbox = img_mask.getbbox()
 
                 a, b, c, d = bbox
@@ -889,59 +887,13 @@ def place_sprites(xcod, folder, overwrite=False, margins=False):
                 if d - b - 1:
                     d -= 1
 
-                if margins:
-                    pass
-                    # if a > 0:
-                    #     j = int(a > 1) + 1
-                    #     o = tmp_region.crop((0, 0, 1, tmp_region.height))
-                    #     tmp_region = tmp_region.crop((-j, 0) + tmp_region.size)
-                    #     for v in range(j):
-                    #         tmp_region.paste(o, (v, 0), o)
-                    #     o = img_mask.crop((0, 0, 1, img_mask.height))
-                    #     img_mask = img_mask.crop((-j, 0) + img_mask.size)
-                    #     for v in range(j):
-                    #         img_mask.paste(o, (v, 0), o)
-                    #     a -= j
-                    # if b > 0:
-                    #     j = int(b > 1) + 1
-                    #     print(j)
-                    #     o = tmp_region.crop((0, 0, tmp_region.width, 1))
-                    #     tmp_region = tmp_region.crop((0, -j) + tmp_region.size)
-                    #     for v in range(j):
-                    #         tmp_region.paste(o, (0, v), o)
-                    #     o = img_mask.crop((0, 0, img_mask.width, 1))
-                    #     img_mask = img_mask.crop((0, -j) + img_mask.size)
-                    #     for v in range(j):
-                    #         img_mask.paste(o, (0, v), o)
-                    #     b -= j
-                    #
-                    # if c < sheet_image[sheet_id].width:
-                    #     j = int(sheet_image[sheet_id].width - c > 1) + 1
-                    #     o = tmp_region.crop((tmp_region.width - 1, 0, tmp_region.width, tmp_region.height))
-                    #     tmp_region = tmp_region.crop((0, 0, tmp_region.width + j, tmp_region.height))
-                    #     for v in range(j):
-                    #         tmp_region.paste(o, (tmp_region.width - v - 1, 0), o)
-                    #     o = img_mask.crop((img_mask.width - 1, 0, img_mask.width, img_mask.height))
-                    #     img_mask = img_mask.crop((0, 0, img_mask.width + j, img_mask.height))
-                    #     for v in range(j):
-                    #         img_mask.paste(o, (img_mask.width - v - 1, 0), o)
-                    #     c += j
-                    # if d < sheet_image[sheet_id].height:
-                    #     j = int(sheet_image[sheet_id].height - d > 1) + 1
-                    #     o = tmp_region.crop((0, tmp_region.height - 1, tmp_region.width, tmp_region.height))
-                    #     tmp_region = tmp_region.crop((0, 0, tmp_region.width, tmp_region.height + j))
-                    #     for v in range(j):
-                    #         tmp_region.paste(o, (0, tmp_region.height - v - 1), o)
-                    #     o = img_mask.crop((0, img_mask.height - 1, img_mask.width, img_mask.height))
-                    #     img_mask = img_mask.crop((0, 0, img_mask.width, img_mask.height + j))
-                    #     for v in range(j):
-                    #         img_mask.paste(o, (0, img_mask.height - v - 1), o)
-                    #     d += j
-
                 bbox = a, b, c, d
 
                 region_size = bbox[2] - bbox[0], bbox[3] - bbox[1]
                 tmp_region = tmp_region.resize(region_size, Image.ANTIALIAS)
+                if clip_name == '_movieclip_69':
+                    tmp_region.show()
+                    print()
 
                 if mirroring:
                     tmp_region = tmp_region.transform(region_size, Image.EXTENT,
