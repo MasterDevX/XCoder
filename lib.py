@@ -207,6 +207,9 @@ def download_update(zip_url):
         config.update({'updated': False})
         json.dump(config, open(config_path, 'w'))
         input(locale.to_continue)
+
+        config.update({'last_update': int(time.time())})
+        json.dump(config, open(config_path, 'w'))
         exit()
 
 

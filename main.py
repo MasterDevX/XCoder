@@ -317,7 +317,8 @@ if __name__ == '__main__':
 
             config.update({'updated': True, 'version': latest_tag_name, 'last_update': int(time.time())})
             json.dump(config, open(config_path, 'w'))
-        exit()
+        else:
+            exit()
 
     while 1:
         try:
