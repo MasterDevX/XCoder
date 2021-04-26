@@ -527,9 +527,9 @@ class SupercellSWF:
         del decompressed
 
         self.filename = os.path.basename(filepath)
-    
+
         if is_texture:
-            self.load_tags()
+            has_texture = self.load_tags()
         else:
             self.sprite_globals.shape_count = self.reader.uint16()
             self.sprite_globals.movie_clips_count = self.reader.uint16()
@@ -549,7 +549,7 @@ class SupercellSWF:
             self.exports = [_function() for _function in [self.reader.uint16] * self.sprite_globals.export_count]
             self.exports = {export_id: self.reader.string() for export_id in self.exports}
     
-            self.load_tags()
+            has_texture = self.load_tags()
         
             for movieclip in self.movie_clips.values():
                 for shape_index in range(len(movieclip.shapes)):
@@ -596,7 +596,8 @@ class SupercellSWF:
                         region.size = size
 
                         movieclip.shapes[shape_index].regions[region_index] = region
-        return use_lzham
+        print()
+        return has_texture, use_lzham
 
     def load_tags(self):
         has_texture = True
@@ -609,7 +610,7 @@ class SupercellSWF:
             length = self.reader.uint32()
     
             if tag == 0:
-                break
+                return has_texture
             elif tag in [1, 16, 28, 29, 34, 19, 24, 27]:
                 if len(self.textures) <= texture_id:
                     # Костыль, такого в либе нет, но ради фичи с вытаскиванием только текстур, можно и добавить)
@@ -626,9 +627,8 @@ class SupercellSWF:
 
                     bytes2rgba(self.reader, texture.pixel_type, img, pixels)
 
-                    print()
-
                     if tag in (27, 28):
+                        print()
                         join_image(img, pixels)
                         print()
                     print()
@@ -835,7 +835,7 @@ def place_sprites(xcod, folder, overwrite=False):
             Image.open(f'{folder}/textures/{tex[i]}')
             if overwrite else
             Image.new('RGBA', (width, height)))
-        sheet_image_data['data'].append({'file_type': file_type, 'sub_type': sub_type})
+        sheet_image_data['data'].append({'file_type': file_type, 'pixel_type': sub_type})
 
     clips_count = xcod.uint16()
 

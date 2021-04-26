@@ -144,20 +144,30 @@ def sc_decode():
     folder = './SC/In-Compressed'
     folder_export = './SC/Out-Decompressed'
 
-    for file in os.listdir(folder):
-        if file.endswith('_tex.sc'):
-
-            current_sub_path = file[::-1].split('.', 1)[1][::-1]
-            if os.path.isdir(f'{folder_export}/{current_sub_path}'):
-                shutil.rmtree(f'{folder_export}/{current_sub_path}')
-            os.mkdir(f'{folder_export}/{current_sub_path}')
+    files = os.listdir(folder)
+    for file in files:
+        if file.endswith('.sc'):
+            swf = SupercellSWF()
+            base_name = os.path.basename(file).rsplit('.', 1)[0]
             try:
-                swf = SupercellSWF()
-                use_lzham = swf.load_internal(f'{folder}/{file}', True)
+                has_texture, use_lzham = swf.load_internal(f'{folder}/{file}', file.endswith('_tex.sc'))
+
+                if not has_texture:
+                    file = base_name + '_tex.sc'
+                    if file in files:
+                        files.remove(file)
+
+                        has_texture, use_lzham = swf.load_internal(f'{folder}/{file}', True)
+                    else:
+                        continue
+
+                current_sub_path = file[::-1].split('.', 1)[1][::-1]
+                if os.path.isdir(f'{folder_export}/{current_sub_path}'):
+                    shutil.rmtree(f'{folder_export}/{current_sub_path}')
+                os.mkdir(f'{folder_export}/{current_sub_path}')
 
                 data = struct.pack('4s?B', b'XCOD', use_lzham, len(swf.textures)) + swf.xcod_writer.getvalue()
 
-                base_name = os.path.basename(file).rsplit('.', 1)[0]
                 with open(f'{folder_export}/{current_sub_path}/{base_name.rstrip("_")}.xcod', 'wb') as xc:
                     xc.write(data)
                 for img_index in range(len(swf.textures)):
@@ -194,55 +204,57 @@ def sc1_decode():
     files = os.listdir(folder)
 
     for file in files:
-        if file.endswith('_tex.sc'):
+        if not file.endswith('_tex.sc'):
+            xc = None
+            try:
+                base_name = os.path.basename(file).rsplit('.', 1)[0]
 
-            sc_file = file[:-7] + '.sc'
-            if sc_file not in files:
-                Console.error(locale.not_found % sc_file)
-            else:
+                Console.info(locale.dec_sc)
+
+                swf = SupercellSWF()
+                has_texture, use_lzham = swf.load_internal(f'{folder}/{file}', False)
+                if not has_texture:
+                    file = base_name + '_tex.sc'
+                    if file not in files:
+                        Console.error(locale.not_found % file)
+                        continue
+                    _, use_lzham = swf.load_internal(f'{folder}/{file}', True)
+
                 current_sub_path = file[::-1].split('.', 1)[1][::-1]
                 if os.path.isdir(f'{folder_export}/{current_sub_path}'):
                     shutil.rmtree(f'{folder_export}/{current_sub_path}')
                 os.mkdir(f'{folder_export}/{current_sub_path}')
+                os.makedirs(f"{folder_export}/{current_sub_path}/textures", exist_ok=True)
+                base_name = os.path.basename(file).rsplit('.', 1)[0]
 
-                xc = open(f'{folder_export}/{current_sub_path}/{file[:-3]}.xcod', 'wb')
-                try:
-                    Console.info(locale.dec_sc_tex)
+                xc = open(f'{folder_export}/{current_sub_path}/{base_name}.xcod', 'wb')
+                data = struct.pack('4s?B', b'XCOD', use_lzham, len(swf.textures)) + swf.xcod_writer.getvalue()
 
-                    swf = SupercellSWF()
-                    swf.load_internal(f'{folder}/{sc_file}', False)
-                    use_lzham = swf.load_internal(f'{folder}/{file}', True)
-                    data = struct.pack('4s?B', b'XCOD', use_lzham, len(swf.textures)) + swf.xcod_writer.getvalue()
+                for img_index in range(len(swf.textures)):
+                    filename = base_name + '_' * img_index
+                    swf.textures[img_index].image.save(f'{folder_export}/{current_sub_path}/textures/{filename}.png')
 
-                    os.makedirs(f"{folder_export}/{current_sub_path}/textures", exist_ok=True)
-                    base_name = os.path.basename(file).rsplit('.', 1)[0]
-                    for img_index in range(len(swf.textures)):
-                        filename = base_name + '_' * img_index
-                        swf.textures[img_index].image.save(f'{folder_export}/{current_sub_path}/textures/{filename}.png')
+                xc.write(data)
 
-                    xc.write(data)
+                Console.info(locale.dec_sc)
 
-                    Console.info(locale.dec_sc)
+                cut_sprites(
+                    swf.movie_clips,
+                    swf.textures,
+                    xc,
+                    f'{folder_export}/{current_sub_path}'
+                )
+            except Exception as exception:
+                if xc is not None:
+                    xc.close()
 
-                    cut_sprites(
-                        swf.movie_clips,
-                        swf.textures,
-                        xc,
-                        f'{folder_export}/{current_sub_path}'
-                    )
-                except Exception as exception:
-                    try:
-                        xc.close()
-                    except Exception:
-                        pass
-
-                    errors += 1
-                    Console.error(locale.error % (
-                        exception.__class__.__module__,
-                        exception.__class__.__name__,
-                        exception
-                    ))
-                    logger.write(traceback.format_exc())
+                errors += 1
+                Console.error(locale.error % (
+                    exception.__class__.__module__,
+                    exception.__class__.__name__,
+                    exception
+                ))
+                logger.write(traceback.format_exc())
 
             print()
 
@@ -259,7 +271,7 @@ def sc1_encode(overwrite: bool = False):
             Console.error(locale.not_found % xcod)
         else:
             try:
-                Console.info(locale.dec_sc_tex)
+                Console.info(locale.dec_sc)
                 sheet_image, sheet_image_data = place_sprites(f'{folder}{file}/{xcod}', f'{folder}{file}', overwrite)
                 Console.info(locale.dec_sc)
                 compile_sc(f'{folder}{file}/', sheet_image, sheet_image_data, folder_export)
@@ -297,10 +309,11 @@ if __name__ == '__main__':
 
     if is_windows:
         import ctypes
+
         ctypes.windll.kernel32.SetConsoleTitleW(locale.xcoder % config['version'])
         del ctypes
 
-    if (not ('last_update' in config)) or time.time() - config['last_update'] > 60*60*24*7:
+    if (not ('last_update' in config)) or time.time() - config['last_update'] > 60 * 60 * 24 * 7:
         check_update()
 
     if not config['updated']:

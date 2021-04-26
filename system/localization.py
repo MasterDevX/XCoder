@@ -67,7 +67,6 @@ class Locale:
         self.not_implemented = None
         self.want_exit = None
         self.dec_sc = None
-        self.dec_sc_tex = None
         self.error = None
 
         # new

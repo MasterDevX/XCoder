@@ -62,7 +62,6 @@
     "not_implemented": "This feature will be added in future updates.\nYou can follow XCoder updates here: github.com/Vorono4ka/XCoder",
     "want_exit": "Want to exit?",
     "dec_sc": "Decoding .sc file...",
-    "dec_sc_tex": "Decoding _tex.sc file...",
     "error": "ERROR! (%s.%s: %s)",
     "e1sc1": "Overwrite SC sprites",
 	"cgl": "Changelog:\n%s\n",
