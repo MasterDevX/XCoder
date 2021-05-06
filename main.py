@@ -49,7 +49,7 @@ def init(ret=True):
         if package in installed_packages:
             continue
 
-        if run(f'pip3 install {package}'):
+        if run(f'pip3 install {package}') == 0:
             Console.info(locale.installed % package)
         else:
             Console.info(locale.not_installed % package)
@@ -89,54 +89,6 @@ def clear_dirs():
                 if os.path.isdir(folder):
                     shutil.rmtree(folder)
                 make_dirs(folder)
-
-
-def decompress_csv():
-    global errors
-    folder = './CSV/In-Compressed'
-    folder_export = './CSV/Out-Decompressed'
-
-    for file in os.listdir(folder):
-        if file.endswith('.csv'):
-            try:
-                with open(f'{folder}/{file}', 'rb') as f:
-                    file_data = f.read()
-                    f.close()
-
-                with open(f'{folder_export}/{file}', 'wb') as f:
-                    f.write(decompress(file_data))
-                    f.close()
-            except Exception as exception:
-                errors += 1
-                Console.error(locale.error % (exception.__class__.__module__, exception.__class__.__name__, exception))
-                logger.write(traceback.format_exc())
-
-            print()
-
-
-def compress_csv():
-    from sc_compression.signatures import Signatures
-
-    global errors
-    folder = './CSV/In-Decompressed'
-    folder_export = './CSV/Out-Compressed'
-
-    for file in os.listdir(folder):
-        if file.endswith('.csv'):
-            try:
-                with open(f'{folder}/{file}', 'rb') as f:
-                    file_data = f.read()
-                    f.close()
-
-                with open(f'{folder_export}/{file}', 'wb') as f:
-                    f.write(compress(file_data, Signatures.LZMA))
-                    f.close()
-            except Exception as exception:
-                errors += 1
-                Console.error(locale.error % (exception.__class__.__module__, exception.__class__.__name__, exception))
-                logger.write(traceback.format_exc())
-
-            print()
 
 
 def sc_decode():

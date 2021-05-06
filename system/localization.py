@@ -40,7 +40,6 @@ class Locale:
         self.got_error = None
         self.collecting_inf = None
         self.about_sc = None
-        self.try_error = None
         self.skip_not_installed = None
         self.decompression_error = None
         self.detected_comp = None

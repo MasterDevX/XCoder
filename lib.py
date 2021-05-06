@@ -213,6 +213,54 @@ def download_update(zip_url):
         exit()
 
 
+def decompress_csv():
+    global errors
+    folder = './CSV/In-Compressed'
+    folder_export = './CSV/Out-Decompressed'
+
+    for file in os.listdir(folder):
+        if file.endswith('.csv'):
+            try:
+                with open(f'{folder}/{file}', 'rb') as f:
+                    file_data = f.read()
+                    f.close()
+
+                with open(f'{folder_export}/{file}', 'wb') as f:
+                    f.write(decompress(file_data))
+                    f.close()
+            except Exception as exception:
+                errors += 1
+                Console.error(locale.error % (exception.__class__.__module__, exception.__class__.__name__, exception))
+                logger.write(traceback.format_exc())
+
+            print()
+
+
+def compress_csv():
+    from sc_compression.signatures import Signatures
+
+    global errors
+    folder = './CSV/In-Decompressed'
+    folder_export = './CSV/Out-Compressed'
+
+    for file in os.listdir(folder):
+        if file.endswith('.csv'):
+            try:
+                with open(f'{folder}/{file}', 'rb') as f:
+                    file_data = f.read()
+                    f.close()
+
+                with open(f'{folder_export}/{file}', 'wb') as f:
+                    f.write(compress(file_data, Signatures.LZMA))
+                    f.close()
+            except Exception as exception:
+                errors += 1
+                Console.error(locale.error % (exception.__class__.__module__, exception.__class__.__name__, exception))
+                logger.write(traceback.format_exc())
+
+            print()
+
+
 def get_pixel_size(_type):
     if _type in (0, 1):
         return 4
@@ -400,21 +448,24 @@ def write_sc(output_filename: str, buffer: bytes, use_lzham: bool):
 
 
 def open_sc(input_filename: str):
+    decompressed = None
     use_lzham = False
 
     Console.info(locale.collecting_inf)
-    with open(input_filename, 'rb') as fh:
-        try:
-            decompressed, signature = decompress(fh.read())
-            #
-            # Console.info(locale.detected_comp % signature.upper())
-            #
-            if signature == Signatures.SCLZ:
-                use_lzham = True
-        except Exception:
-            Console.info(locale.try_error)
+    with open(input_filename, 'rb') as f:
+        filedata = f.read()
+        f.close()
 
-        fh.close()
+    try:
+        decompressed, signature = decompress(filedata)
+        #
+        # Console.info(locale.detected_comp % signature.upper())
+        #
+        if signature == Signatures.SCLZ:
+            use_lzham = True
+    except Exception:
+        Console.info(locale.decompression_error)
+        exit(1)
 
     return decompressed, use_lzham
 
