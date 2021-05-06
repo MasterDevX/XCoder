@@ -21,12 +21,11 @@ try:
     import subprocess
     import colorama
     import tempfile
-    
-    from sc_compression.decompressor import Decompressor
-    from sc_compression.compressor import Compressor
-    from sc_compression.signatures import Signatures
 
     from PIL import Image, ImageDraw
+
+    from sc_compression.signatures import Signatures
+    from sc_compression import decompress, compress
 except Exception as e:
     logger.write(e)
 
@@ -109,20 +108,6 @@ def colored_print(text, color=None):
     return print(color + colorama.Fore.BLACK + text + ' ' * (10 - len(text)) + colorama.Style.RESET_ALL)
 
 
-def decompress(buffer: bytes) -> (bytes, int):
-    decompressor = Decompressor()
-    decompressed = decompressor.decompress(buffer)
-
-    return decompressed, decompressor.signatures.last_signature
-
-
-def compress(buffer: bytes, signature: int) -> bytes:
-    compressor = Compressor()
-    compressed = compressor.compress(buffer, signature)
-
-    return compressed
-
-
 def welcome_text():
     load_locale()
 
@@ -159,6 +144,15 @@ def welcome_text():
     return choice
 
 
+def get_pip_info(outdated: bool = False) -> list:
+    output = get_run_output(f'pip --disable-pip-version-check list {"-o" if outdated else ""}')
+    output = output.splitlines()
+    output = output[2:]
+    packages = [package.split() for package in output]
+
+    return packages
+
+
 def get_tags(owner: str, repo: str):
     api_url = 'https://api.github.com'
     tags = []
@@ -183,6 +177,14 @@ def check_update():
     if len(tags) > 0:
         latest_tag = tags[0]
         latest_tag_name = latest_tag['name'][1:]  # clear char 'v' at string start
+
+        Console.info(locale.check_for_outdated)
+        required_packages = [pkg.rstrip('\n').lower() for pkg in open('requirements.txt').readlines()]
+        outdated_packages = [pkg[0].lower() for pkg in get_pip_info(True)]
+        for package in required_packages:
+            if package in outdated_packages:
+                run(f'pip3 install --upgrade {package}')
+
         if config['version'] != latest_tag_name:
             Console.error(locale.not_latest)
 
@@ -214,7 +216,6 @@ def download_update(zip_url):
 
 
 def decompress_csv():
-    global errors
     folder = './CSV/In-Compressed'
     folder_export = './CSV/Out-Decompressed'
 
@@ -226,10 +227,9 @@ def decompress_csv():
                     f.close()
 
                 with open(f'{folder_export}/{file}', 'wb') as f:
-                    f.write(decompress(file_data))
+                    f.write(decompress(file_data)[0])
                     f.close()
             except Exception as exception:
-                errors += 1
                 Console.error(locale.error % (exception.__class__.__module__, exception.__class__.__name__, exception))
                 logger.write(traceback.format_exc())
 
@@ -239,7 +239,6 @@ def decompress_csv():
 def compress_csv():
     from sc_compression.signatures import Signatures
 
-    global errors
     folder = './CSV/In-Decompressed'
     folder_export = './CSV/Out-Compressed'
 
@@ -254,10 +253,153 @@ def compress_csv():
                     f.write(compress(file_data, Signatures.LZMA))
                     f.close()
             except Exception as exception:
+                Console.error(locale.error % (exception.__class__.__module__, exception.__class__.__name__, exception))
+                logger.write(traceback.format_exc())
+
+            print()
+
+
+def sc_decode():
+    global errors
+    folder = './SC/In-Compressed'
+    folder_export = './SC/Out-Decompressed'
+
+    files = os.listdir(folder)
+    for file in files:
+        if file.endswith('.sc'):
+            swf = SupercellSWF()
+            base_name = os.path.basename(file).rsplit('.', 1)[0]
+            try:
+                has_texture, use_lzham = swf.load_internal(f'{folder}/{file}', file.endswith('_tex.sc'))
+
+                if not has_texture:
+                    base_name += '_tex'
+                    file = base_name + '.sc'
+                    if file in files:
+                        files.remove(file)
+
+                        has_texture, use_lzham = swf.load_internal(f'{folder}/{file}', True)
+                    else:
+                        continue
+
+                current_sub_path = file[::-1].split('.', 1)[1][::-1]
+                if os.path.isdir(f'{folder_export}/{current_sub_path}'):
+                    shutil.rmtree(f'{folder_export}/{current_sub_path}')
+                os.mkdir(f'{folder_export}/{current_sub_path}')
+
+                data = struct.pack('4s?B', b'XCOD', use_lzham, len(swf.textures)) + swf.xcod_writer.getvalue()
+
+                with open(f'{folder_export}/{current_sub_path}/{base_name.rstrip("_")}.xcod', 'wb') as xc:
+                    xc.write(data)
+                for img_index in range(len(swf.textures)):
+                    filename = base_name + '_' * img_index
+                    swf.textures[img_index].image.save(f'{folder_export}/{current_sub_path}/{filename}.png')
+            except Exception as exception:
                 errors += 1
                 Console.error(locale.error % (exception.__class__.__module__, exception.__class__.__name__, exception))
                 logger.write(traceback.format_exc())
 
+            print()
+
+
+def sc_encode():
+    global errors
+    folder = './SC/In-Decompressed'
+    folder_export = './SC/Out-Compressed'
+
+    for file in os.listdir(folder):
+        try:
+            compile_sc(f'{folder}/{file}/', folder_export=folder_export)
+        except Exception as exception:
+            errors += 1
+            Console.error(locale.error % (exception.__class__.__module__, exception.__class__.__name__, exception))
+            logger.write(traceback.format_exc())
+
+        print()
+
+
+def sc1_decode():
+    global errors
+    folder = './SC/In-Compressed'
+    folder_export = './SC/Out-Sprites'
+    files = os.listdir(folder)
+
+    for file in files:
+        if not file.endswith('_tex.sc'):
+            xc = None
+            try:
+                base_name = os.path.basename(file).rsplit('.', 1)[0]
+
+                Console.info(locale.dec_sc)
+
+                swf = SupercellSWF()
+                has_texture, use_lzham = swf.load_internal(f'{folder}/{file}', False)
+                if not has_texture:
+                    file = base_name + '_tex.sc'
+                    if file not in files:
+                        Console.error(locale.not_found % file)
+                        continue
+                    _, use_lzham = swf.load_internal(f'{folder}/{file}', True)
+
+                current_sub_path = file[::-1].split('.', 1)[1][::-1]
+                if os.path.isdir(f'{folder_export}/{current_sub_path}'):
+                    shutil.rmtree(f'{folder_export}/{current_sub_path}')
+                os.mkdir(f'{folder_export}/{current_sub_path}')
+                os.makedirs(f"{folder_export}/{current_sub_path}/textures", exist_ok=True)
+                base_name = os.path.basename(file).rsplit('.', 1)[0]
+
+                xc = open(f'{folder_export}/{current_sub_path}/{base_name}.xcod', 'wb')
+                data = struct.pack('4s?B', b'XCOD', use_lzham, len(swf.textures)) + swf.xcod_writer.getvalue()
+
+                for img_index in range(len(swf.textures)):
+                    filename = base_name + '_' * img_index
+                    swf.textures[img_index].image.save(f'{folder_export}/{current_sub_path}/textures/{filename}.png')
+
+                xc.write(data)
+
+                Console.info(locale.dec_sc)
+
+                cut_sprites(
+                    swf.movie_clips,
+                    swf.textures,
+                    xc,
+                    f'{folder_export}/{current_sub_path}'
+                )
+            except Exception as exception:
+                if xc is not None:
+                    xc.close()
+
+                errors += 1
+                Console.error(locale.error % (
+                    exception.__class__.__module__,
+                    exception.__class__.__name__,
+                    exception
+                ))
+                logger.write(traceback.format_exc())
+
+            print()
+
+
+def sc1_encode(overwrite: bool = False):
+    global errors
+    folder = './SC/In-Sprites/'
+    folder_export = './SC/Out-Compressed/'
+    files = os.listdir(folder)
+
+    for file in files:
+        xcod = file + '.xcod'
+        if xcod not in os.listdir(f'{folder}{file}/'):
+            Console.error(locale.not_found % xcod)
+        else:
+            try:
+                Console.info(locale.dec_sc)
+                sheet_image, sheet_image_data = place_sprites(f'{folder}{file}/{xcod}', f'{folder}{file}', overwrite)
+                Console.info(locale.dec_sc)
+                compile_sc(f'{folder}{file}/', sheet_image, sheet_image_data, folder_export)
+            except Exception as exception:
+                errors += 1
+                Console.error(locale.error % (exception.__class__.__module__, exception.__class__.__name__, exception))
+                logger.write(traceback.format_exc())
             print()
 
 
@@ -441,8 +583,8 @@ def write_sc(output_filename: str, buffer: bytes, use_lzham: bool):
 
             file_out.write(compressed)
         else:
-            Console.info(locale.compressing_with % 'ZSTD')
-            compressed = compress(buffer, Signatures.SC)
+            Console.info(locale.compressing_with % 'LZMA')
+            compressed = compress(buffer, Signatures.SC, 1)
             file_out.write(compressed)
         Console.info(locale.compression_done)
 

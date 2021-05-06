@@ -22,6 +22,7 @@
     "encode_by_parts": "Encode SC from chunks",
     "other_features": "OTHER",
     "check_update": "Check for updates",
+    "check_for_outdated": "Check for outdated packages",
     "version": "Current version: %s",
     "not_latest": "Not the latest version installed",
     "reinit": "Repeat init",

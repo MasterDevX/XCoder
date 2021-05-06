@@ -27,6 +27,7 @@ class Locale:
         self.encode_by_parts = None
         self.other_features = None
         self.check_update = None
+        self.check_for_outdated = None
         self.version = None
         self.not_latest = None
         self.reinit = None
