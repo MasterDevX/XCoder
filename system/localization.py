@@ -4,7 +4,7 @@ import os
 
 class Locale:
     def __init__(self):
-        self.xcoder = None
+        self.xcoder_header = None
         self.detected_os = None
         self.installing = None
         self.update_downloading = None
@@ -18,25 +18,39 @@ class Locale:
         self.choice = None
         self.to_continue = None
         self.experimental = None
-        self.sc = None
+
+        self.sc_label = None
         self.decode_sc = None
-        self.decode_sc_desc = None
         self.encode_sc = None
-        self.encode_sc_desc = None
         self.decode_by_parts = None
         self.encode_by_parts = None
-        self.other_features = None
+        self.overwrite_by_parts = None
+        self.decode_sc_description = None
+        self.encode_sc_description = None
+        self.decode_by_parts_description = None
+        self.encode_by_parts_description = None
+        self.overwrite_by_parts_description = None
+
+        self.csv_label = None
+        self.decompress_csv = None
+        self.compress_csv = None
+        self.decompress_csv_description = None
+        self.compress_csv_description = None
+
+        self.other_features_label = None
         self.check_update = None
         self.check_for_outdated = None
-        self.version = None
-        self.not_latest = None
         self.reinit = None
-        self.reinit_desc = None
-        self.relang = None
-        self.relang_desc = None
-        self.clean_dirs = None
-        self.clean_dirs_desc = None
+        self.change_lang = None
+        self.clear_dirs = None
+        self.toggle_update_auto_checking = None
         self.exit = None
+        self.version = None
+        self.reinit_description = None
+        self.change_lang_description = None
+        self.clean_dirs_description = None
+
+        self.not_latest = None
         self.done_err = None
         self.got_error = None
         self.collecting_inf = None
@@ -62,8 +76,8 @@ class Locale:
         self.compression_done = None
         self.dir_empty = None
         self.not_found = None
-        self.cut_sprites = None
-        self.place_sprites = None
+        self.cut_sprites_process = None
+        self.place_sprites_process = None
         self.not_implemented = None
         self.want_exit = None
         self.dec_sc = None
@@ -79,15 +93,13 @@ class Locale:
         self.bkp = None
         self.stp = None
         self.pause = None
-        # self.aupd_qu = None
-        self.margin_qu = None
 
-        self.decompress_csv = None
-        self.compress_csv = None
+        self.enabled = None
+        self.disabled = None
 
     def load_from(self, language: str):
-        language_filepath = 'system/languages/' + language + '.json'
-        english_language_filepath = 'system/languages/en-EU.json'
+        language_filepath = './system/languages/' + language + '.json'
+        english_language_filepath = './system/languages/en-EU.json'
 
         loaded_locale = {}
         if os.path.exists(language_filepath):
