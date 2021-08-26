@@ -33,3 +33,4 @@ On Android:
 
 ### TODO:
 - CSV updating.
+- Shapes rendering.

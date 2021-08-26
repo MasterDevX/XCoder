@@ -26,8 +26,8 @@ class Console:
     @staticmethod
     def question(message):
         answer = input(f'[????] {message} [Y/n] ').lower()
-        if answer in 'nY':
-            return 'nY'.index(answer)
+        if answer in 'ny':
+            return 'ny'.index(answer)
         else:
             return Console.question(message)
 

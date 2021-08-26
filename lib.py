@@ -215,7 +215,6 @@ def download_update(zip_url):
 
     with zipfile.ZipFile('updates/update.zip') as zf:
         zf.extractall('updates/')
-
         zf.close()
 
         Console.done_text(locale.update_done % f'"{zf.namelist()[0]}"')
