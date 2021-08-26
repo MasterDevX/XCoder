@@ -38,7 +38,7 @@
     "reinit": "Повторная инициализация",
     "change_lang": "Выбрать другой язык",
     "clear_dirs": "Очистить рабочие папки",
-    "toggle_update_auto_checking": "Включить/Выключить проверку обновлений",
+    "toggle_update_auto_checking": "Переключить проверку обновлений",
     "exit": "Выход",
     "version": "Версия: %s",
     "reinit_description": "Если что-то пошло не так",

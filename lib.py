@@ -89,14 +89,14 @@ def make_dirs(directory):
         os.makedirs(directory)
 
 
-def print_feature_with_description(name: str, description: str = None, console_width: int = -1):
+def print_feature(name: str, description: str = None, console_width: int = -1):
     print(name, end='')
     if description:
         print(' ' * (console_width // 2 - len(name)) + ': ' + description, end='')
     print()
 
 
-def colored_print(text, color=None):
+def print_category(text, color=None):
     if color is None:
         color = colorama.Back.GREEN
     return print(color + colorama.Fore.BLACK + text + ' ' * (10 - len(text)) + colorama.Style.RESET_ALL)
@@ -106,41 +106,39 @@ def welcome_text():
     locale.load_from(config.lang)
 
     console_width = shutil.get_terminal_size().columns
-    print(
-        (
-            colorama.Back.BLACK + colorama.Fore.GREEN +
-            locale.xcoder_header % config.version +
-            colorama.Style.RESET_ALL
-        ).center(console_width + 14)
-    )
+    print((
+        colorama.Back.BLACK + colorama.Fore.GREEN +
+        locale.xcoder_header % config.version +
+        colorama.Style.RESET_ALL
+    ).center(console_width + 14))
     print('github.com/Vorono4ka/XCoder'.center(console_width))
     print(console_width * '-')
 
-    colored_print(locale.sc_label)
-    print_feature_with_description(' 1   ' + locale.decode_sc, locale.decode_sc_description, console_width)
-    print_feature_with_description(' 2   ' + locale.encode_sc, locale.encode_sc_description, console_width)
-    print_feature_with_description(' 3   ' + locale.decode_by_parts, locale.decode_by_parts_description, console_width)
-    print_feature_with_description(' 4   ' + locale.encode_by_parts, locale.encode_by_parts_description, console_width)
-    print_feature_with_description(' 5   ' + locale.overwrite_by_parts, locale.overwrite_by_parts_description, console_width)
+    print_category(locale.sc_label)
+    print_feature(' 1   ' + locale.decode_sc, locale.decode_sc_description, console_width)
+    print_feature(' 2   ' + locale.encode_sc, locale.encode_sc_description, console_width)
+    print_feature(' 3   ' + locale.decode_by_parts, locale.decode_by_parts_description, console_width)
+    print_feature(' 4   ' + locale.encode_by_parts, locale.encode_by_parts_description, console_width)
+    print_feature(' 5   ' + locale.overwrite_by_parts, locale.overwrite_by_parts_description, console_width)
     print(console_width * '-')
 
-    colored_print(locale.csv_label)
-    print_feature_with_description(' 11   ' + locale.decompress_csv, locale.decompress_csv_description, console_width)
-    print_feature_with_description(' 12   ' + locale.compress_csv, locale.compress_csv_description, console_width)
+    print_category(locale.csv_label)
+    print_feature(' 11   ' + locale.decompress_csv, locale.decompress_csv_description, console_width)
+    print_feature(' 12   ' + locale.compress_csv, locale.compress_csv_description, console_width)
     print(console_width * '-')
 
-    colored_print(locale.other_features_label)
-    print_feature_with_description(' 101 ' + locale.check_update, locale.version % config.version, console_width)
-    print_feature_with_description(' 102 ' + locale.check_for_outdated)
-    print_feature_with_description(' 103 ' + locale.reinit, locale.reinit_description, console_width)
-    print_feature_with_description(' 104 ' + locale.change_lang, locale.change_lang_description % config.lang, console_width)
-    print_feature_with_description(' 105 ' + locale.clear_dirs, locale.clean_dirs_description, console_width)
-    print_feature_with_description(
+    print_category(locale.other_features_label)
+    print_feature(' 101 ' + locale.check_update, locale.version % config.version, console_width)
+    print_feature(' 102 ' + locale.check_for_outdated)
+    print_feature(' 103 ' + locale.reinit, locale.reinit_description, console_width)
+    print_feature(' 104 ' + locale.change_lang, locale.change_lang_description % config.lang, console_width)
+    print_feature(' 105 ' + locale.clear_dirs, locale.clean_dirs_description, console_width)
+    print_feature(
         ' 106 ' + locale.toggle_update_auto_checking,
         locale.enabled if config.auto_update else locale.disabled,
         console_width
     )
-    print_feature_with_description(' 107 ' + locale.exit)
+    print_feature(' 107 ' + locale.exit)
     print(console_width * '-')
 
     choice = input(locale.choice)
@@ -354,12 +352,14 @@ def sc1_decode():
                 base_name = os.path.basename(file).rsplit('.', 1)[0]
 
                 with open(f'{folder_export}/{current_sub_path}/{base_name}.xcod', 'wb') as xcod_file:
-                    xcod_file.write(b'XCOD' + bool.to_bytes(use_lzham, 1, 'big') + int.to_bytes(len(swf.textures), 1, 'big'))
+                    xcod_file.write(b'XCOD' + bool.to_bytes(use_lzham, 1, 'big') +
+                                    int.to_bytes(len(swf.textures), 1, 'big'))
 
                     for img_index in range(len(swf.textures)):
                         filename = base_name + '_' * img_index
-                        swf.textures[img_index].image.save(f'{folder_export}/{current_sub_path}/textures/{filename}.png')
-
+                        swf.textures[img_index].image.save(
+                            f'{folder_export}/{current_sub_path}/textures/{filename}.png'
+                        )
 
                     Console.info(locale.dec_sc)
 
@@ -436,7 +436,7 @@ def open_sc(input_filename: str):
         #
         if signature == Signatures.SCLZ:
             use_lzham = True
-    except Exception:
+    except TypeError:
         Console.info(locale.decompression_error)
         exit(1)
 
@@ -471,7 +471,7 @@ def compile_sc(_dir, from_memory=None, img_data=None, folder_export=None):
             use_lzham, = struct.unpack('?', sc_data.read(1))
             sc_data.read(1)
             has_xcod = True
-        except Exception:
+        except OSError:
             Console.info(locale.not_xcod)
             Console.info(locale.default_types)
 
@@ -609,7 +609,13 @@ class SupercellSWF:
                 texture.load(self, tag, has_texture)
 
                 if has_texture:
-                    Console.info(locale.about_sc % (self.filename, texture_id, texture.pixel_type, texture.width, texture.height))
+                    Console.info(locale.about_sc % (
+                        self.filename,
+                        texture_id,
+                        texture.pixel_type,
+                        texture.width,
+                        texture.height
+                    ))
                     print()
 
                     self.xcod_writer.write_ubyte(tag)
@@ -690,7 +696,10 @@ def place_sprites(xcod, folder, overwrite=False):
     sheet_image = []
     sheet_image_data = {'use_lzham': use_lzham, 'data': []}
     for i in range(pictures_count):
-        file_type, sub_type, width, height = xcod.read_ubyte(), xcod.read_ubyte(), xcod.read_uint16(), xcod.read_uint16()
+        file_type, sub_type, width, height = xcod.read_ubyte(), \
+                                             xcod.read_ubyte(), \
+                                             xcod.read_uint16(), \
+                                             xcod.read_uint16()
         sheet_image.append(
             Image.open(f'{folder}/textures/{tex[i]}')
             if overwrite else

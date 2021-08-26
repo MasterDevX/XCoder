@@ -7,9 +7,16 @@ class Config:
     inited: bool
 
     def __init__(self):
-        self.config_items = []
+        self.config_items = (
+            'initialized',
+            'version',
+            'lang',
+            'has_update',
+            'last_update',
+            'auto_update',
+        )
 
-        self.inited: bool = False
+        self.initialized: bool = False
         self.version = None
         self.lang: str = 'en-EU'
         self.has_update: bool = False
@@ -22,7 +29,6 @@ class Config:
         if os.path.isfile(self.config_path):
             for key, value in json.load(open(self.config_path)).items():
                 setattr(self, key, value)
-                self.config_items.append(key)
 
     def dump(self):
         json.dump({

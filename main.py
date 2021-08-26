@@ -25,8 +25,8 @@ def select_lang():
     config.dump()
 
 
-def init(ret=True):
-    if ret:
+def init(first_init=False):
+    if first_init:
         clear()
 
     Console.info(locale.detected_os % platform.system())
@@ -51,7 +51,7 @@ def init(ret=True):
     config.version = get_tags('vorono4ka', 'xcoder')[0]['name'][1:]
     config.dump()
 
-    if ret:
+    if first_init:
         input(locale.to_continue)
 
 
@@ -82,11 +82,7 @@ if __name__ == '__main__':
     locale.load_from(config.lang)
 
     if not config.inited:
-        init()
-        try:
-            run('python%s "%s"' % ('' if is_windows else '3', __file__))
-        except Exception as e:
-            logger.write(e)
+        init(True)
         exit()
 
     if is_windows:
@@ -125,11 +121,13 @@ if __name__ == '__main__':
                 '3': sc1_decode,
                 '4': sc1_encode,
                 '5': lambda: sc1_encode(True),
+
                 '11': decompress_csv,
                 '12': compress_csv,
+
                 '101': check_update,
                 '102': check_for_outdated,
-                '103': lambda: init(ret=False),
+                '103': init,
                 '104': lambda: (select_lang(), locale.load_from(config.lang)),
                 '105': lambda: clear_dirs() if Console.question(locale.clear_qu) else -1,
                 '106': toggle_auto_update,
