@@ -57,7 +57,7 @@ class Shape:
 
             rendered_region = region.render(swf)
 
-            image.paste(rendered_region, (int(shape_min_x - region_min_x), int(shape_max_y - region_max_y)))
+            image.paste(rendered_region, (int(shape_min_x - region_min_x), int(shape_max_y - region_max_y)), rendered_region)
 
         return image
 

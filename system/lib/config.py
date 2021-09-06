@@ -21,7 +21,7 @@ class Config:
         self.lang: str = 'en-EU'
         self.has_update: bool = False
         self.last_update: int = -1
-        self.auto_update: bool = True
+        self.auto_update: bool = False
 
         self.load()
 

@@ -47,7 +47,7 @@ def init(first_init=False):
     [[make_dirs(f'CSV/{i}-{k}') for k in ['Compressed', 'Decompressed']] for i in ['In', 'Out']]
     Console.info(locale.verifying)
 
-    config.inited = True
+    config.initialized = True
     config.version = get_tags('vorono4ka', 'xcoder')[0]['name'][1:]
     config.dump()
 
@@ -74,14 +74,14 @@ def clear_dirs():
 if __name__ == '__main__':
     logger = Logger('en-EU')
 
-    if not config.inited:
+    if not config.initialized:
         select_lang()
 
     logger = Logger(config.lang)
     locale = Locale()
     locale.load_from(config.lang)
 
-    if not config.inited:
+    if not config.initialized:
         init(True)
         exit()
 
