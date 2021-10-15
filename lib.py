@@ -1,11 +1,12 @@
 from system.bytestream import Writer
 from system.lib.config import Config
 from system.lib.logger import Logger
+from system.lib.menu import Menu
 from system.localization import Locale
 
 from system.lib.objects.texture import SWFTexture
 from system.lib.objects.shape import Shape
-from system.lib.objects.movie_clip import MovieClip
+from system.lib.objects.movieclip import MovieClip
 
 logger = Logger('en-EU')
 
@@ -37,6 +38,7 @@ lzham_path = r'system\lzham'
 
 is_windows = platform.system() == 'Windows'
 null_output = f'{"nul" if is_windows else "/dev/null"} 2>&1'
+
 
 config = Config()
 locale = Locale()
@@ -89,61 +91,88 @@ def make_dirs(directory):
         os.makedirs(directory)
 
 
-def print_feature(name: str, description: str = None, console_width: int = -1):
-    print(name, end='')
-    if description:
-        print(' ' * (console_width // 2 - len(name)) + ': ' + description, end='')
-    print()
+def create_menu():
+    menu = Menu()
+
+    refill_menu(menu)
+
+    return menu
 
 
-def print_category(text, color=None):
-    if color is None:
-        color = colorama.Back.GREEN
-    return print(color + colorama.Fore.BLACK + text + ' ' * (10 - len(text)) + colorama.Style.RESET_ALL)
+def refill_menu(menu):
+    menu.categories.clear()
 
+    menu.add_category(Menu.Category(0, locale.sc_label))
+    menu.categories[0].add(Menu.Item(
+        locale.decode_sc,
+        locale.decode_sc_description,
+        sc_decode
+    ))
+    menu.categories[0].add(Menu.Item(
+        locale.encode_sc,
+        locale.encode_sc_description,
+        sc_encode
+    ))
+    menu.categories[0].add(Menu.Item(
+        locale.decode_by_parts,
+        locale.decode_by_parts_description,
+        sc1_decode
+    ))
+    menu.categories[0].add(Menu.Item(
+        locale.encode_by_parts,
+        locale.encode_by_parts_description,
+        sc1_encode
+    ))
+    menu.categories[0].add(Menu.Item(
+        locale.overwrite_by_parts,
+        locale.overwrite_by_parts_description,
+        lambda: sc1_encode(True)
+    ))
 
-def welcome_text():
-    locale.load_from(config.lang)
+    menu.add_category(Menu.Category(1, locale.csv_label))
+    menu.categories[1].add(Menu.Item(
+        locale.decompress_csv,
+        locale.decompress_csv_description,
+        decompress_csv
+    ))
+    menu.categories[1].add(Menu.Item(
+        locale.compress_csv,
+        locale.compress_csv_description,
+        compress_csv
+    ))
 
-    console_width = shutil.get_terminal_size().columns
-    print((
-        colorama.Back.BLACK + colorama.Fore.GREEN +
-        locale.xcoder_header % config.version +
-        colorama.Style.RESET_ALL
-    ).center(console_width + 14))
-    print('github.com/Vorono4ka/XCoder'.center(console_width))
-    print(console_width * '-')
-
-    print_category(locale.sc_label)
-    print_feature(' 1   ' + locale.decode_sc, locale.decode_sc_description, console_width)
-    print_feature(' 2   ' + locale.encode_sc, locale.encode_sc_description, console_width)
-    print_feature(' 3   ' + locale.decode_by_parts, locale.decode_by_parts_description, console_width)
-    print_feature(' 4   ' + locale.encode_by_parts, locale.encode_by_parts_description, console_width)
-    print_feature(' 5   ' + locale.overwrite_by_parts, locale.overwrite_by_parts_description, console_width)
-    print(console_width * '-')
-
-    print_category(locale.csv_label)
-    print_feature(' 11   ' + locale.decompress_csv, locale.decompress_csv_description, console_width)
-    print_feature(' 12   ' + locale.compress_csv, locale.compress_csv_description, console_width)
-    print(console_width * '-')
-
-    print_category(locale.other_features_label)
-    print_feature(' 101 ' + locale.check_update, locale.version % config.version, console_width)
-    print_feature(' 102 ' + locale.check_for_outdated)
-    print_feature(' 103 ' + locale.reinit, locale.reinit_description, console_width)
-    print_feature(' 104 ' + locale.change_lang, locale.change_lang_description % config.lang, console_width)
-    print_feature(' 105 ' + locale.clear_dirs, locale.clean_dirs_description, console_width)
-    print_feature(
-        ' 106 ' + locale.toggle_update_auto_checking,
+    menu.add_category(Menu.Category(10, locale.other_features_label))
+    menu.categories[2].add(Menu.Item(
+        locale.check_update,
+        locale.version % config.version,
+        check_update
+    ))
+    menu.categories[2].add(Menu.Item(
+        locale.check_for_outdated,
+        None,
+        check_for_outdated
+    ))
+    menu.categories[2].add(Menu.Item(
+        locale.reinit,
+        locale.reinit_description,
+        init
+    ))
+    menu.categories[2].add(Menu.Item(
+        locale.change_lang,
+        locale.change_lang_description % config.lang,
+        lambda: (select_lang(), refill_menu(menu))
+    ))
+    menu.categories[2].add(Menu.Item(
+        locale.clear_dirs,
+        locale.clean_dirs_description,
+        lambda: clear_dirs() if Console.question(locale.clear_qu) else -1
+    ))
+    menu.categories[2].add(Menu.Item(
+        locale.toggle_update_auto_checking,
         locale.enabled if config.auto_update else locale.disabled,
-        console_width
-    )
-    print_feature(' 107 ' + locale.exit)
-    print(console_width * '-')
-
-    choice = input(locale.choice)
-    print(console_width * '-')
-    return choice
+        lambda: (toggle_auto_update(), refill_menu(menu))
+    ))
+    menu.categories[2].add(Menu.Item(locale.exit, None, lambda: (clear(), exit())))
 
 
 def get_pip_info(outdated: bool = False) -> list:
@@ -171,6 +200,59 @@ def get_tags(owner: str, repo: str):
         pass
 
     return tags
+
+
+def select_lang():
+    config.lang = locale.change()
+    config.dump()
+
+    locale.load_from(config.lang)
+
+
+def init(first_init=False):
+    if first_init:
+        clear()
+
+    Console.info(locale.detected_os % platform.system())
+    Console.info(locale.installing)
+
+    required_packages = [pkg.rstrip('\n').lower() for pkg in open('requirements.txt').readlines()]
+    installed_packages = [pkg[0].lower() for pkg in get_pip_info()]
+    for package in required_packages:
+        if package in installed_packages:
+            continue
+
+        if run(f'pip3 install {package}') == 0:
+            Console.info(locale.installed % package)
+        else:
+            Console.info(locale.not_installed % package)
+    Console.info(locale.crt_workspace)
+    [[make_dirs(f'SC/{i}-{k}') for k in ['Compressed', 'Decompressed', 'Sprites']] for i in ['In', 'Out']]
+    [[make_dirs(f'CSV/{i}-{k}') for k in ['Compressed', 'Decompressed']] for i in ['In', 'Out']]
+    Console.info(locale.verifying)
+
+    config.initialized = True
+    config.version = get_tags('vorono4ka', 'xcoder')[0]['name'][1:]
+    config.dump()
+
+    if first_init:
+        input(locale.to_continue)
+
+
+def clear_dirs():
+    for i in ['In', 'Out']:
+        for k in ['Compressed', 'Decompressed', 'Sprites']:
+            folder = f'SC/{i}-{k}'
+            if os.path.isdir(folder):
+                shutil.rmtree(folder)
+            make_dirs(folder)
+
+    for i in ['In', 'Out']:
+        for k in ['Compressed', 'Decompressed']:
+            folder = f'CSV/{i}-{k}'
+            if os.path.isdir(folder):
+                shutil.rmtree(folder)
+            make_dirs(folder)
 
 
 def toggle_auto_update():
@@ -523,10 +605,6 @@ def compile_sc(_dir, from_memory=None, img_data=None, folder_export=None):
     write_sc(f'{folder_export}/{name}.sc', sc.getvalue(), use_lzham)
 
 
-def ceil(integer) -> int:
-    return round(integer + 0.5)
-
-
 class SupercellSWF:
     def __init__(self):
         self.filename = None
@@ -544,7 +622,7 @@ class SupercellSWF:
         self.exports = {}
 
         self.shapes = []
-        self.movie_clips = []
+        self.movieclips = []
         self.textures = []
 
         self.matrices = []
@@ -572,7 +650,7 @@ class SupercellSWF:
             self.color_transformation_count = self.reader.read_uint16()
 
             self.shapes = [_class() for _class in [Shape] * self.shape_count]
-            self.movie_clips = [_class() for _class in [MovieClip] * self.movie_clips_count]
+            self.movieclips = [_class() for _class in [MovieClip] * self.movie_clips_count]
             self.textures = [_class() for _class in [SWFTexture] * self.textures_count]
 
             self.reader.read_uint32()
@@ -592,7 +670,7 @@ class SupercellSWF:
         has_texture = True
 
         texture_id = 0
-        loaded_movie_clips = 0
+        loaded_movieclips = 0
         loaded_shapes = 0
 
         while True:
@@ -628,8 +706,8 @@ class SupercellSWF:
                 self.shapes[loaded_shapes].load(self, tag)
                 loaded_shapes += 1
             elif tag in [3, 10, 12, 14, 35]:  # MovieClip
-                self.movie_clips[loaded_movie_clips].load(self, tag)
-                loaded_movie_clips += 1
+                self.movieclips[loaded_movieclips].load(self, tag)
+                loaded_movieclips += 1
             elif tag == 8:  # Matrix
                 scale_x = self.reader.read_int32() / 1024
                 rotation_x = self.reader.read_int32() / 1024
@@ -768,8 +846,3 @@ def place_sprites(xcod, folder, overwrite=False):
     print()
 
     return sheet_image, sheet_image_data
-
-
-# Testing TIME!
-if __name__ == '__main__':
-    welcome_text()

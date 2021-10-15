@@ -30,34 +30,44 @@ class Shape:
             else:
                 swf.reader.read(region_length)
 
-    def render(self, swf):
-        shape_min_x = 0
-        shape_min_y = 0
-        shape_max_x = 0
-        shape_max_y = 0
-
+    def render(self, swf, matrix=None):
         for region in self.regions:
             region.transformed_points = list(region.shape_points)
 
-        for region in self.regions:
-            shape_min_x = min(shape_min_x, min(point.x for point in region.transformed_points))
-            shape_min_y = min(shape_min_y, min(point.y for point in region.transformed_points))
-            shape_max_x = max(shape_max_x, max(point.x for point in region.transformed_points))
-            shape_max_y = max(shape_max_y, max(point.y for point in region.transformed_points))
+            if matrix is not None:
+                region.transformed_points = []
+                for point in region.shape_points:
+                    region.transformed_points.append(Point(
+                        point.x * matrix[0] + point.y * matrix[3] + matrix[2],
+                        point.x * matrix[1] + point.y * matrix[4] + matrix[5]
+                    ))
 
-        width, height = shape_max_x - shape_min_x, shape_max_y - shape_min_y
+        shape_left = 0
+        shape_top = 0
+        shape_right = 0
+        shape_bottom = 0
+        for region in self.regions:
+            shape_left = min(shape_left, min(point.x for point in region.transformed_points))
+            shape_right = max(shape_right, max(point.x for point in region.transformed_points))
+            shape_top = min(shape_top, min(point.y for point in region.transformed_points))
+            shape_bottom = max(shape_bottom, max(point.y for point in region.transformed_points))
+
+        width, height = shape_right - shape_left, shape_bottom - shape_top
         size = ceil(width), ceil(height)
 
         image = Image.new('RGBA', size)
 
         region: Region
         for region in self.regions:
-            region_min_x = min(point.x for point in region.transformed_points)
-            region_max_y = max(point.y for point in region.transformed_points)
-
             rendered_region = region.render(swf)
 
-            image.paste(rendered_region, (int(shape_min_x - region_min_x), int(shape_max_y - region_max_y)), rendered_region)
+            left = min(point.x for point in region.transformed_points)
+            top = min(point.y for point in region.transformed_points)
+
+            x = int(left + abs(shape_left))
+            y = int(top + abs(shape_top))
+
+            image.paste(rendered_region, (x, y), rendered_region)
 
         return image
 
@@ -102,17 +112,17 @@ class Region:
             self.sheet_points[z].position = (x, y)
 
     def render(self, swf):
-        sheet_min_x = min(point.x for point in self.sheet_points)
-        sheet_min_y = min(point.y for point in self.sheet_points)
-        sheet_max_x = max(point.x for point in self.sheet_points)
-        sheet_max_y = max(point.y for point in self.sheet_points)
+        sheet_left = min(point.x for point in self.sheet_points)
+        sheet_right = max(point.x for point in self.sheet_points)
+        sheet_top = min(point.y for point in self.sheet_points)
+        sheet_bottom = max(point.y for point in self.sheet_points)
 
-        shape_min_x = min(point.x for point in self.transformed_points)
-        shape_min_y = min(point.y for point in self.transformed_points)
-        shape_max_x = max(point.x for point in self.transformed_points)
-        shape_max_y = max(point.y for point in self.transformed_points)
+        shape_left = min(point.x for point in self.transformed_points)
+        shape_right = max(point.x for point in self.transformed_points)
+        shape_top = min(point.y for point in self.transformed_points)
+        shape_bottom = max(point.y for point in self.transformed_points)
 
-        width, height = shape_max_x - shape_min_x, shape_max_y - shape_min_y
+        width, height = shape_right - shape_left, shape_bottom - shape_top
         self.size = ceil(width), ceil(height)
 
         self.rotation = calculate_rotation(self)
@@ -124,14 +134,14 @@ class Region:
         ImageDraw.Draw(img_mask).polygon([point.position for point in self.sheet_points], fill=color)
         bbox = img_mask.getbbox()
         if not bbox:
-            if sheet_max_y - sheet_min_y != 0:
-                for _y in range(sheet_max_y - sheet_min_y):
-                    img_mask.putpixel((sheet_max_x - 1, sheet_min_y + _y - 1), color)
-            elif sheet_max_x - sheet_min_x != 0:
-                for _x in range(sheet_max_x - sheet_min_x):
-                    img_mask.putpixel((sheet_min_x + _x - 1, sheet_max_y - 1), color)
+            if sheet_bottom - sheet_top != 0:
+                for _y in range(sheet_bottom - sheet_top):
+                    img_mask.putpixel((sheet_right - 1, sheet_top + _y - 1), color)
+            elif sheet_right - sheet_left != 0:
+                for _x in range(sheet_right - sheet_left):
+                    img_mask.putpixel((sheet_left + _x - 1, sheet_bottom - 1), color)
             else:
-                img_mask.putpixel((sheet_max_x - 1, sheet_max_y - 1), color)
+                img_mask.putpixel((sheet_right - 1, sheet_bottom - 1), color)
             bbox = img_mask.getbbox()
 
         a, b, c, d = bbox
@@ -171,78 +181,76 @@ def calculate_rotation(region):
 
     region.mirroring = int(not (shape_orientation == sheet_orientation))
 
-    # if region.mirroring:
-    #     for x in range(num_points):
-    #         point = region.transformed_points[x]
-    #         region.transformed_points[x].x *= -1
-
     sheet_pos_0 = region.sheet_points[0]
     sheet_pos_1 = region.sheet_points[1]
     shape_pos_0 = region.transformed_points[0]
     shape_pos_1 = region.transformed_points[1]
+
+    if sheet_pos_0 == sheet_pos_1:
+        sheet_pos_0 = Point(sheet_pos_0.x + 1, sheet_pos_0.y)
 
     if region.mirroring:
         shape_pos_0 = Point(shape_pos_0.x * -1, shape_pos_0.y)
         shape_pos_1 = Point(shape_pos_1.x * -1, shape_pos_1.y)
 
     if sheet_pos_1.x > sheet_pos_0.x:
-        px = 1
+        sheet_x = 1
     elif sheet_pos_1.x < sheet_pos_0.x:
-        px = 2
+        sheet_x = 2
     else:
-        px = 3
+        sheet_x = 3
 
     if sheet_pos_1.y < sheet_pos_0.y:
-        py = 1
+        sheet_y = 1
     elif sheet_pos_1.y > sheet_pos_0.y:
-        py = 2
+        sheet_y = 2
     else:
-        py = 3
+        sheet_y = 3
 
     if shape_pos_1.x > shape_pos_0.x:
-        qx = 1
+        shape_x = 1
     elif shape_pos_1.x < shape_pos_0.x:
-        qx = 2
+        shape_x = 2
     else:
-        qx = 3
+        shape_x = 3
 
     if shape_pos_1.y > shape_pos_0.y:
-        qy = 1
+        shape_y = 1
     elif shape_pos_1.y < shape_pos_0.y:
-        qy = 2
+        shape_y = 2
     else:
-        qy = 3
+        shape_y = 3
 
     rotation = 0
-    if px == qx and py == qy:
+    if sheet_x == shape_x and sheet_y == shape_y:
         rotation = 0
-    elif px == 3:
-        if px == qy:
-            if py == qx:
+    elif sheet_x == 3:
+        if sheet_x == shape_y:
+            if sheet_y == shape_x:
                 rotation = 1
             else:
                 rotation = 3
         else:
             rotation = 2
-    elif py == 3:
-        if py == qx:
-            if px == qy:
+    elif sheet_y == 3:
+        if sheet_y == shape_x:
+            if sheet_x == shape_y:
                 rotation = 3
             else:
                 rotation = 1
         else:
             rotation = 2
-    elif px != qx and py != qy:
+    elif sheet_x != shape_x and sheet_y != shape_y:
         rotation = 2
-    elif px == py:
-        if px != qx:
+    elif sheet_x == sheet_y:
+        if sheet_x != shape_x:
             rotation = 3
-        elif py != qy:
+        elif sheet_y != shape_y:
             rotation = 1
-    elif px != py:
-        if px != qx:
+    elif sheet_x != sheet_y:
+        if sheet_x != shape_x:
             rotation = 1
-        elif py != qy:
+        elif sheet_y != shape_y:
             rotation = 3
 
     if sheet_orientation == -1 and rotation in (1, 3):

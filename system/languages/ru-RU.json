@@ -1,4 +1,5 @@
 {
+    "name": "Russian (Русский)",
     "xcoder_header": "XCoder | Версия: %s | От: Vorono4ka",
     "detected_os": "Обнаружена система %s.",
     "installing": "Установка необходимых модулей...",

@@ -111,3 +111,26 @@ class Locale:
                 setattr(self, key, loaded_locale[key])
                 continue
             setattr(self, key, english_locale[key])
+
+    def change(self):
+        language_files = os.listdir('./system/languages/')
+
+        print('Select Language\nВыберите язык\n')
+
+        for file_index in range(len(language_files)):
+            language_path = './system/languages/' + language_files[file_index]
+            language_name = json.load(open(language_path, encoding='utf-8'))['name']
+
+            print(f'{file_index + 1} - {language_name}')
+
+        language_index = input('\n>>> ')
+        try:
+            language_index = int(language_index) - 1
+            if language_index >= 0:
+                if language_index < len(language_files):
+                    language = '.'.join(language_files[language_index].split('.')[:-1])
+                    return language
+        except ValueError:
+            pass
+
+        return self.change()

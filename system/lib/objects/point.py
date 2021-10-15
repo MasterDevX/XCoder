@@ -3,6 +3,9 @@ class Point:
         self.x = x
         self.y = y
         
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y
+
     def __add__(self, other):
         if isinstance(other, Point):
             self.x += other.x

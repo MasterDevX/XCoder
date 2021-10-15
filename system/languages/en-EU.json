@@ -1,4 +1,5 @@
 {
+    "name": "English",
     "xcoder_header": "XCoder | Version: %s | by Vorono4ka",
     "detected_os": "Detected %s OS.",
     "installing": "Installing required modules...",
