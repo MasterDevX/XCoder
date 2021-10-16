@@ -29,7 +29,7 @@ class en:
 	clean_dirs_desc = 'Clear In and Out dirs'
 	exit = 'Exit'
 	done_err = 'DONE WITH %s ERRORS!\nFor more information check log.txt'
-	got_error = 'Got error: \n%s\n\n'
+	got_error = 'Got error: \n%s\n%s\n'
 	collecting_inf = 'Collecting information...'
 	about_sc = 'About: FileName: %s, FileType: %s, FileSize: %s, SubType: %s, Width: %s, Height: %s'
 	try_error = 'Error while decompessing! Trying to decode as is...'
