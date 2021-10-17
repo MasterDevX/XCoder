@@ -1,8 +1,7 @@
-SC/
-CSV/
-updates/
-.idea/
-logs/
+/SC/
+/CSV/
+/updates/
+/.idea/
+/logs/
 system/config.json
 *.pyc
-log.txt
