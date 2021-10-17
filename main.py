@@ -25,7 +25,6 @@ if __name__ == '__main__':
 
     while True:
         try:
-            clear()
             handler = menu.choice()
             if handler is not None:
                 start_time = time.time()
@@ -33,6 +32,7 @@ if __name__ == '__main__':
                     handler()
                 logger.opt(colors=True).info(f'<green>{locale.done % (time.time() - start_time)}</green>')
                 input(locale.to_continue)
+            clear()
         except KeyboardInterrupt:
             if Console.question(locale.want_exit):
                 clear()

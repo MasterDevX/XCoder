@@ -15,6 +15,7 @@ class Locale:
         self.not_installed = None
         self.clear_qu = None
         self.done = None
+        self.done_qu = None
         self.choice = None
         self.to_continue = None
         self.experimental = None
@@ -93,6 +94,8 @@ class Locale:
 
         self.enabled = None
         self.disabled = None
+
+        self.install_to_unlock = None
 
     def load(self, language: str):
         language_filepath = './system/languages/' + language + '.json'

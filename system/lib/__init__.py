@@ -4,8 +4,6 @@ import time
 from system import clear
 from system.lib.config import config
 from system.lib.console import Console
-from system.lib.features.csv.compress import compress_csv
-from system.lib.features.csv.decompress import decompress_csv
 from system.lib.features.directories import clear_directories
 from system.lib.features.initialization import initialize
 from system.lib.features.update.check import check_update, check_for_outdated, get_tags
@@ -16,13 +14,13 @@ from loguru import logger
 
 logger.remove()
 logger.add(
-    './logs/info/{time:YYYY-dd-MM_HH-mm-ss}.log',
+    './logs/info/{time:YYYY-dd-MM}.log',
     format='[{time:HH:mm:ss}] [{level}]: {message}',
     encoding="utf8",
     level='INFO'
 )
 logger.add(
-    './logs/errors/{time:YYYY-dd-MM_HH-mm-ss}.log',
+    './logs/errors/{time:YYYY-dd-MM}.log',
     format='[{time:HH:mm:ss}] [{level}]: {message}',
     backtrace=True,
     diagnose=True,
@@ -45,8 +43,8 @@ try:
         config.dump()
 
     if config.has_update:
-        logger.opt(colors=True).info(f'<green>{locale.update_done}</green>')
-        if Console.question(locale.done[:-1] + '?'):
+        logger.opt(colors=True).info(f'<green>{locale.update_done % ""}</green>')
+        if Console.question(locale.done_qu):
             latest_tag = get_tags('vorono4ka', 'xcoder')[0]
             latest_tag_name = latest_tag['name'][1:]
 
@@ -56,8 +54,8 @@ try:
             config.dump()
         else:
             exit()
-except ImportError as exception:
-    logger.error(exception)
+except ImportError:
+    pass
 
 
 @logger.catch()
@@ -67,6 +65,9 @@ def refill_menu():
     try:
         import sc_compression
         del sc_compression
+
+        from system.lib.features.csv.compress import compress_csv
+        from system.lib.features.csv.decompress import decompress_csv
 
         try:
             import PIL
@@ -104,8 +105,8 @@ def refill_menu():
                 lambda: sc1_encode(True)
             ))
             menu.add_category(sc_category)
-        except ImportError as e:
-            logger.exception(e)
+        except ImportError:
+            logger.warning(locale.install_to_unlock % 'PILLOW')
 
         csv_category = Menu.Category(1, locale.csv_label)
         csv_category.add(Menu.Item(
@@ -119,8 +120,8 @@ def refill_menu():
             compress_csv
         ))
         menu.add_category(csv_category)
-    except ImportError as exception:
-        logger.exception(exception)
+    except ImportError:
+        logger.warning(locale.install_to_unlock % 'sc-compression')
 
     other = Menu.Category(10, locale.other_features_label)
     try:
@@ -132,8 +133,8 @@ def refill_menu():
             locale.version % config.version,
             check_update
         ))
-    except ImportError as exception:
-        logger.exception(exception)
+    except ImportError:
+        logger.warning(locale.install_to_unlock % 'requests')
 
     other.add(Menu.Item(
         locale.check_for_outdated,

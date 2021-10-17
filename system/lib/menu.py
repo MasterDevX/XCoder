@@ -17,6 +17,10 @@ def print_category(text):
     return print(colorama.Back.GREEN + colorama.Fore.BLACK + text + ' ' * (10 - len(text)) + colorama.Style.RESET_ALL)
 
 
+def print_line(console_width):
+    print((console_width - 1) * '-')
+
+
 class Menu:
     class Item:
         def __init__(self, name, description=None, handler=None):
@@ -46,23 +50,21 @@ class Menu:
         return category
 
     def choice(self):
-        config.load()
-
         console_width = shutil.get_terminal_size().columns
         print((
             colorama.Back.BLACK + colorama.Fore.GREEN +
             locale.xcoder_header % config.version +
             colorama.Style.RESET_ALL
-        ).center(console_width + 14))
-        print('github.com/Vorono4ka/XCoder'.center(console_width))
-        print(console_width * '-')
+        ).center(console_width + 12))
+        print('github.com/Vorono4ka/XCoder'.center(console_width - 1))
+        print_line(console_width)
 
         for category in self.categories:
             print_category(category.name)
             for item_index in range(len(category.items)):
                 item = category.items[item_index]
                 print_feature(f' {category.id * 10 + item_index + 1} {item.name}', item.description, console_width)
-            print(console_width * '-')
+            print_line(console_width)
 
         choice = input(locale.choice)
         try:
@@ -71,7 +73,7 @@ class Menu:
                 return None
         except ValueError:
             return None
-        print(console_width * '-')
+        print_line(console_width)
 
         category_id = choice // 10
         item_index = choice % 10

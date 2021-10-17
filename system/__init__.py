@@ -20,7 +20,7 @@ if is_windows:
             logger.exception(e)
 
     def clear():
-        run('cls')
+        os.system('cls')
 else:
     def clear():
-        run('clear')
+        os.system('clear')
