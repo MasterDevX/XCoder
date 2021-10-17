@@ -4,13 +4,8 @@ import struct
 from PIL import Image
 
 from system.bytestream import Reader
-from system.lib.config import Config
 from system.lib.console import Console
-from system.localization import Locale
-
-config = Config()
-locale = Locale()
-locale.load_from(config.lang)
+from system.localization import locale
 
 
 def join_image(img, pixels):

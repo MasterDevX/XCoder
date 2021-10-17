@@ -41,8 +41,8 @@ class Locale:
         self.check_update = None
         self.check_for_outdated = None
         self.reinit = None
-        self.change_lang = None
-        self.clear_dirs = None
+        self.change_language = None
+        self.clear_directories = None
         self.toggle_update_auto_checking = None
         self.exit = None
         self.version = None
@@ -51,8 +51,6 @@ class Locale:
         self.clean_dirs_description = None
 
         self.not_latest = None
-        self.done_err = None
-        self.got_error = None
         self.collecting_inf = None
         self.about_sc = None
         self.skip_not_installed = None
@@ -92,12 +90,11 @@ class Locale:
         self.upd_ck = None
         self.bkp = None
         self.stp = None
-        self.pause = None
 
         self.enabled = None
         self.disabled = None
 
-    def load_from(self, language: str):
+    def load(self, language: str):
         language_filepath = './system/languages/' + language + '.json'
         english_language_filepath = './system/languages/en-EU.json'
 
@@ -129,8 +126,13 @@ class Locale:
             if language_index >= 0:
                 if language_index < len(language_files):
                     language = '.'.join(language_files[language_index].split('.')[:-1])
+                    self.load(language)
+
                     return language
         except ValueError:
             pass
 
         return self.change()
+
+
+locale = Locale()

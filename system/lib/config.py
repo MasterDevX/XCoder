@@ -10,7 +10,7 @@ class Config:
         self.config_items = (
             'initialized',
             'version',
-            'lang',
+            'language',
             'has_update',
             'last_update',
             'auto_update',
@@ -18,12 +18,20 @@ class Config:
 
         self.initialized: bool = False
         self.version = None
-        self.lang: str = 'en-EU'
+        self.language: str = 'en-EU'
         self.has_update: bool = False
         self.last_update: int = -1
         self.auto_update: bool = False
 
         self.load()
+
+    def toggle_auto_update(self):
+        self.auto_update = not self.auto_update
+        self.dump()
+
+    def change_language(self, language):
+        self.language = language
+        self.dump()
 
     def load(self):
         if os.path.isfile(self.config_path):
@@ -37,6 +45,4 @@ class Config:
         }, open(self.config_path, 'w'))
 
 
-if __name__ == '__main__':
-    config = Config()
-    print(config.config_items)
+config = Config()

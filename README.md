@@ -17,20 +17,23 @@ On Windows:
 - Download Python 3.7 or newer version from <a href="https://www.python.org/downloads/">official page</a>.
 - Install Python. While Installing, enable such parameters as "Add Python to PATH", "Install pip", "Install py launcher", "Associate files with Python" and "Add Python to environment variables".
 - Download XCoder from <a href="https://github.com/Vorono4ka/XCoder/releases">releases page</a> and extract it.
-- Execute "main.py" file</br>
+- Install required modules by executing following command: ``` pip install -r requirements.txt```
+- Execute "main.py" file
 
 On Linux:
-- Open Terminal and install Python by executing following command:</br>
-```sudo apt-get update && sudo apt-get install python3 python3-pip```
 - Download XCoder from <a href="https://github.com/Vorono4ka/XCoder/releases">releases page</a> and extract it.
+- Open Terminal and install Python by executing following command:</br>
+  ```sudo apt-get update && sudo apt-get install python3 python3-pip```
+- Install required modules:</br>
+  ```sudo pip3 install -r requirements.txt```
 - Execute "main.py" file
 
 On Android:
 - Download and install PyDroid app from <a href="https://play.google.com/store/apps/details?id=ru.iiec.pydroid3">Google Play</a>.
 - Open PyDroid and wait until Python installs.
 - Download XCoder from <a href="https://github.com/Vorono4ka/XCoder/releases">releases page</a> and extract it.
-- In PyDroid open and execute "main.py" file</br>
+- Install loguru using pip
+- In PyDroid open and execute "main.py" file
 
 ### TODO:
 - CSV updating.
-- Shapes rendering.

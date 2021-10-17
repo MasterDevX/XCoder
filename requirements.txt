@@ -4,3 +4,4 @@ colorama
 pylzham
 zstandard
 pillow
+loguru

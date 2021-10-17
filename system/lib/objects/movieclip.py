@@ -1,8 +1,3 @@
-from math import ceil
-
-from PIL import Image
-
-
 class MovieClip:
     def __init__(self):
         super().__init__()

@@ -2,12 +2,8 @@ import shutil
 
 import colorama
 
-from system.lib.config import Config
-from system.localization import Locale
-
-
-config = Config()
-locale = Locale()
+from system.lib.config import config
+from system.localization import locale
 
 
 def print_feature(name: str, description: str = None, console_width: int = -1):
@@ -17,10 +13,8 @@ def print_feature(name: str, description: str = None, console_width: int = -1):
     print()
 
 
-def print_category(text, color=None):
-    if color is None:
-        color = colorama.Back.GREEN
-    return print(color + colorama.Fore.BLACK + text + ' ' * (10 - len(text)) + colorama.Style.RESET_ALL)
+def print_category(text):
+    return print(colorama.Back.GREEN + colorama.Fore.BLACK + text + ' ' * (10 - len(text)) + colorama.Style.RESET_ALL)
 
 
 class Menu:
@@ -49,10 +43,10 @@ class Menu:
 
     def add_category(self, category):
         self.categories.append(category)
+        return category
 
     def choice(self):
         config.load()
-        locale.load_from(config.lang)
 
         console_width = shutil.get_terminal_size().columns
         print((
@@ -88,3 +82,6 @@ class Menu:
                     return item.handler
                 break
         return None
+
+
+menu = Menu()

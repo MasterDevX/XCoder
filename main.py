@@ -1,59 +1,38 @@
 # Refactored by Vorono4ka
 # Finished ~99%
+import time
 
-from lib import *
+try:
+    from loguru import logger
+except ImportError:
+    print('Please, install loguru using pip')
+    exit()
 
-clear()
+from system import clear
+from system.lib import config, Console, locale, refill_menu, menu
+from system.lib.features.initialization import initialize
 
 
 if __name__ == '__main__':
-    logger = Logger('en-EU')
+    if not config.initialized:
+        config.change_language(locale.change())
 
     if not config.initialized:
-        select_lang()
-
-    logger = Logger(config.lang)
-    locale = Locale()
-    locale.load_from(config.lang)
-
-    if not config.initialized:
-        init(True)
+        initialize(True)
         exit()
 
-    menu = create_menu()
+    refill_menu()
 
-    if config.auto_update and time.time() - config.last_update > 60 * 60 * 24 * 7:
-        check_update()
-        config.last_update = int(time.time())
-        config.dump()
-
-    if config.has_update:
-        Console.done_text(locale.update_done % '')
-        if Console.question(locale.done[:-1] + '?'):
-            latest_tag = get_tags('vorono4ka', 'xcoder')[0]
-            latest_tag_name = latest_tag['name'][1:]
-
-            config.has_update = False
-            config.version = latest_tag_name
-            config.last_update = int(time.time())
-            config.dump()
-        else:
-            exit()
-
-    while 1:
+    while True:
         try:
-            errors = 0
-
             clear()
             handler = menu.choice()
             if handler is not None:
-                handler()
-                if errors > 0:
-                    Console.error(locale.done_err % errors)
-                else:
-                    Console.done_text(locale.done)
-
-                pause()
+                start_time = time.time()
+                with logger.catch():
+                    handler()
+                logger.opt(colors=True).info(f'<green>{locale.done % (time.time() - start_time)}</green>')
+                input(locale.to_continue)
         except KeyboardInterrupt:
             if Console.question(locale.want_exit):
                 clear()
