@@ -14,7 +14,6 @@ def load_image_from_buffer(img):
 
     with open('pixel_buffer', 'rb') as pixel_buffer:
         channels_count = int.from_bytes(pixel_buffer.read(1), 'little')
-        print(channels_count)
 
         for y in range(height):
             for x in range(width):

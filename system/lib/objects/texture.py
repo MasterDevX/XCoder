@@ -23,8 +23,6 @@ class SWFTexture:
 
             bytes2rgba(swf.reader, self.pixel_type, img)
 
-            print(pixel_type2str(self.pixel_type))
-
             if tag in (27, 28):
                 join_image(img)
                 print()
