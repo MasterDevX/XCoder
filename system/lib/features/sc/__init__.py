@@ -7,7 +7,7 @@ from loguru import logger
 from system.bytestream import Writer
 from system.lib.console import Console
 from system.lib.features.files import write_sc
-from system.lib.images import get_pixel_size, pixel_type2str, split_image, rgba2bytes
+from system.lib.images import get_pixel_size, split_image, rgba2bytes
 from system.localization import locale
 
 
@@ -64,13 +64,6 @@ def compile_sc(_dir, from_memory=None, img_data=None, folder_export=None):
 
         width, height = img.size
         pixel_size = get_pixel_size(pixel_type)
-
-        img = img.convert('RGBA')
-        x = Image.new('RGBA', img.size, (0, 0, 0, 1))
-        x.paste(img, (0, 0), img)
-        img = x
-
-        img = img.convert(pixel_type2str(pixel_type))
 
         file_size = width * height * pixel_size + 5
 

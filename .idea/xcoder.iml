@@ -6,7 +6,7 @@
       <excludeFolder url="file://$MODULE_DIR$/CSV" />
       <excludeFolder url="file://$MODULE_DIR$/SC" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.9" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.10" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

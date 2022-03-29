@@ -8,10 +8,65 @@ from system.lib.console import Console
 from system.localization import locale
 
 
-def join_image(img, pixels):
+def load_image_from_buffer(img):
     width, height = img.size
-    loaded_img = img.load()
-    pixel_index = 0
+    img_loaded = img.load()
+
+    with open('pixel_buffer', 'rb') as pixel_buffer:
+        channels_count = int.from_bytes(pixel_buffer.read(1), 'little')
+        print(channels_count)
+
+        for y in range(height):
+            for x in range(width):
+                img_loaded[x, y] = tuple(pixel_buffer.read(channels_count))
+
+
+def join_image(img):
+    with open('pixel_buffer', 'rb') as pixel_buffer:
+        channels_count = int.from_bytes(pixel_buffer.read(1), 'little')
+
+        width, height = img.size
+        loaded_img = img.load()
+        chunk_size = 32
+
+        x_chunks_count = width // chunk_size
+        y_chunks_count = height // chunk_size
+        x_rest = width % chunk_size
+        y_rest = height % chunk_size
+
+        for y_chunk in range(y_chunks_count):
+            for x_chunk in range(x_chunks_count):
+                for y in range(chunk_size):
+                    for x in range(chunk_size):
+                        loaded_img[x_chunk * chunk_size + x, y_chunk * chunk_size + y] = tuple(
+                            pixel_buffer.read(channels_count)
+                        )
+
+            for y in range(chunk_size):
+                for x in range(x_rest):
+                    loaded_img[(width - x_rest) + x, y_chunk * chunk_size + y] = tuple(
+                        pixel_buffer.read(channels_count)
+                    )
+            Console.progress_bar(locale.join_pic, y_chunk, y_chunks_count)
+        for x_chunk in range(x_chunks_count):
+            for y in range(y_rest):
+                for x in range(chunk_size):
+                    loaded_img[x_chunk * chunk_size + x, (height - y_rest) + y] = tuple(
+                        pixel_buffer.read(channels_count)
+                    )
+
+        for y in range(y_rest):
+            for x in range(x_rest):
+                loaded_img[x + (width - x_rest), y + (height - y_rest)] = tuple(pixel_buffer.read(channels_count))
+
+
+def split_image(img: Image):
+    def add_pixel(pixel: tuple):
+        loaded_image[pixel_index % width, int(pixel_index / width)] = pixel
+
+    width, height = img.size
+    loaded_image = img.load()
+    loaded_clone = img.copy().load()
     chunk_size = 32
 
     x_chunks_count = width // chunk_size
@@ -19,61 +74,31 @@ def join_image(img, pixels):
     x_rest = width % chunk_size
     y_rest = height % chunk_size
 
+    pixel_index = 0
+
     for y_chunk in range(y_chunks_count):
         for x_chunk in range(x_chunks_count):
             for y in range(chunk_size):
                 for x in range(chunk_size):
-                    loaded_img[x_chunk * chunk_size + x, y_chunk * chunk_size + y] = pixels[pixel_index]
+                    add_pixel(loaded_clone[x + (x_chunk * chunk_size), y + (y_chunk * chunk_size)])
                     pixel_index += 1
 
         for y in range(chunk_size):
             for x in range(x_rest):
-                loaded_img[(width - x_rest) + x, y_chunk * chunk_size + y] = pixels[pixel_index]
+                add_pixel(loaded_clone[x + (width - x_rest), y + (y_chunk * chunk_size)])
                 pixel_index += 1
-        Console.progress_bar(locale.join_pic, y_chunk, y_chunks_count)
-    for x_chunk in range(x_chunks_count):
-        for y in range(y_rest):
-            for x in range(chunk_size):
-                loaded_img[x_chunk * chunk_size + x, (height - y_rest) + y] = pixels[pixel_index]
-                pixel_index += 1
-
-    for y in range(y_rest):
-        for x in range(x_rest):
-            loaded_img[x + (width - x_rest), y + (height - y_rest)] = pixels[pixel_index]
-            pixel_index += 1
-
-
-def split_image(img):
-    pixels = []
-    width, height = img.size
-    loaded_img = img.load()
-    chunk_size = 32
-
-    x_chunks_count = width // chunk_size
-    y_chunks_count = height // chunk_size
-    x_rest = width % chunk_size
-    y_rest = height % chunk_size
-
-    for y_chunk in range(y_chunks_count):
-        for x_chunk in range(x_chunks_count):
-            for y in range(chunk_size):
-                for x in range(chunk_size):
-                    pixels.append(loaded_img[x + (x_chunk * chunk_size), y + (y_chunk * chunk_size)])
-
-        for y in range(chunk_size):
-            for x in range(x_rest):
-                pixels.append(loaded_img[x + (width - x_rest), y + (y_chunk * chunk_size)])
         Console.progress_bar(locale.split_pic, y_chunk, y_chunks_count)
 
     for x_chunk in range(width // chunk_size):
         for y in range(y_rest):
             for x in range(chunk_size):
-                pixels.append(loaded_img[x + (x_chunk * chunk_size), y + (height - y_rest)])
+                add_pixel(loaded_clone[x + (x_chunk * chunk_size), y + (height - y_rest)])
+                pixel_index += 1
 
     for y in range(y_rest):
         for x in range(x_rest):
-            pixels.append(loaded_img[x + (width - x_rest), y + (height - y_rest)])
-    img.putdata(pixels)
+            add_pixel(loaded_clone[x + (width - x_rest), y + (height - y_rest)])
+            pixel_index += 1
 
 
 def get_pixel_size(_type):
@@ -89,17 +114,19 @@ def get_pixel_size(_type):
 def pixel_type2str(_type):
     if _type in range(4):
         return 'RGBA'
-    if _type in (4,):
+    elif _type == 4:
         return 'RGB'
-    if _type in (6,):
+    elif _type == 6:
         return 'LA'
-    if _type in (10,):
+    elif _type == 10:
         return 'L'
+
     raise Exception(locale.unk_type % _type)
 
 
-def bytes2rgba(data: Reader, _type, img, pix):
+def bytes2rgba(data: Reader, _type, img):
     read_pixel = None
+    channels_count = 4
     if _type in (0, 1):
         def read_pixel():
             return data.read_ubyte(), data.read_ubyte(), data.read_ubyte(), data.read_ubyte()
@@ -112,30 +139,41 @@ def bytes2rgba(data: Reader, _type, img, pix):
             p = data.read_uint16()
             return (p >> 11 & 31) << 3, (p >> 6 & 31) << 3, (p >> 1 & 31) << 3, (p & 255) << 7
     elif _type == 4:
+        channels_count = 3
+
         def read_pixel():
             p = data.read_uint16()
             return (p >> 11 & 31) << 3, (p >> 5 & 63) << 2, (p & 31) << 3
     elif _type == 6:
+        channels_count = 2
+
         def read_pixel():
             return (data.read_ubyte(), data.read_ubyte())[::-1]
     elif _type == 10:
+        channels_count = 1
+
         def read_pixel():
             return data.read_ubyte()
 
-    if read_pixel is not None:
+    if read_pixel is None:
+        return
+
+    with open('pixel_buffer', 'wb') as pixel_buffer:
+        pixel_buffer.write(channels_count.to_bytes(1, 'little'))
+
         width, height = img.size
         point = -1
         for y in range(height):
             for x in range(width):
-                pix.append(read_pixel())
+                pixel = read_pixel()
+                for channel in pixel:
+                    pixel_buffer.write(channel.to_bytes(1, 'little'))
 
             curr = Console.percent(y, height)
             if curr > point:
                 Console.progress_bar(locale.crt_pic, y, height)
                 point = curr
-        print()
-
-        img.putdata(pix)
+    print()
 
 
 def rgba2bytes(sc, img, _type):
