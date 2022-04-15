@@ -14,13 +14,13 @@ from loguru import logger
 
 logger.remove()
 logger.add(
-    './logs/info/{time:YYYY-dd-MM}.log',
+    './logs/info/{time:YYYY-DD-MM}.log',
     format='[{time:HH:mm:ss}] [{level}]: {message}',
     encoding="utf8",
     level='INFO'
 )
 logger.add(
-    './logs/errors/{time:YYYY-dd-MM}.log',
+    './logs/errors/{time:YYYY-DD-MM}.log',
     format='[{time:HH:mm:ss}] [{level}]: {message}',
     backtrace=True,
     diagnose=True,
