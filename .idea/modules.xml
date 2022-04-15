@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../sc-compression/.idea/Sc-Compression.iml" filepath="$PROJECT_DIR$/../sc-compression/.idea/Sc-Compression.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../sc-compression/.idea/sc-compression.iml" filepath="$PROJECT_DIR$/../sc-compression/.idea/sc-compression.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/xcoder.iml" filepath="$PROJECT_DIR$/.idea/xcoder.iml" />
     </modules>
   </component>

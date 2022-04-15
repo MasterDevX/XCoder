@@ -30,11 +30,13 @@ def open_sc(input_filename: str):
 
     logger.info(locale.collecting_inf)
     with open(input_filename, 'rb') as f:
-        filedata = f.read()
+        file_data = f.read()
         f.close()
 
     try:
-        decompressed, signature = decompress(filedata)
+        if b'START' in file_data:
+            file_data = file_data[:file_data.index(b'START')]
+        decompressed, signature = decompress(file_data)
         #
         # logger.info(locale.detected_comp % signature.upper())
         #
