@@ -111,7 +111,7 @@ def get_pixel_size(_type):
 
 
 def pixel_type2str(_type):
-    if _type in range(4):
+    if _type in (0, 1, 2, 3):
         return 'RGBA'
     elif _type == 4:
         return 'RGB'

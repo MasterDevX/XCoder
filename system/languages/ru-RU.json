@@ -26,7 +26,7 @@
     "encode_sc_description": "Конвертирует PNG в SC",
     "decode_by_parts_description": "Конвертирует SC в PNG и разрезает текстуру на части",
     "encode_by_parts_description": "Собирает части текстуры и конвертирует PNG в SC",
-    "overwrite_by_parts_description": "Повторяет действие предыдущей функции, но учитывает папку \"overwrite\"",
+    "overwrite_by_parts_description": "Повторяет действие предыдущей функции, но учитывает папку 'overwrite'",
 
     "csv_label": "CSV - Таблицы",
     "decompress_csv": "Разжать CSV",
@@ -58,8 +58,7 @@
     "join_pic": "Соединяем картинку...",
     "png_save": "Сохраняем в png...",
     "saved": "Сохранение прошло успешно!",
-    "not_xcod": ".xcod файл не обнаружен!",
-    "default_types": "Мы используем стандартные типы текстур (1, 0).\n       И ещё LZMA сжатие (как в SC из Brawl Stars)",
+    "xcod_not_found": "Файл '%s.xcod' не обнаружен!",
     "illegal_size": "Размер картинки не совпадает с оригиналом! Ожидалось %sx%s, но мы получили %sx%s",
     "resize_qu": "Хотите изменить размер?",
     "resizing": "Изменяем размер...",
@@ -69,16 +68,16 @@
     "compressing_with": "Сохраняем с применением %s сжатия...",
     "compression_error": "Сжатие не удалось",
     "compression_done": "Сжатие прошло успешно!",
-    "dir_empty": "Папка \"%s\" пуста!",
-    "not_found": "Не был найден \"%s\" файл!",
-    "cut_sprites_process": "Вырезаем спрайты... (%s/%s)",
-    "place_sprites_process": "Ставим спрайты на место... (%s/%s)",
+    "dir_empty": "Папка '%s' пуста!",
+    "not_found": "Файл '%s' не найден!",
+    "cut_sprites_process": "Вырезаем спрайты... (%d/%d)",
+    "place_sprites_process": "Ставим спрайты на место... (%d/%d)",
     "not_implemented": "Данная возможность будет добавлена в будущих обновлениях.\nЗа обновлениями XCoder вы можете следить здесь: github.com/Vorono4ka/XCoder",
     "want_exit": "Хотите выйти?",
     "dec_sc": "Декодируем SC...",
     "error": "ОШИБКА! (%s.%s: %s)",
     "e1sc1": "Перезапись спрайтов",
-	"cgl": "Список изменений:\n%s\n",
+	"cgl": "Список изменений: \n%s",
 	"upd_av": "\nДоступно обновление!\nВерсия: %s\n",
 	"upd_qu": "Обновить?",
 	"upd": "Обновляем...",
@@ -89,5 +88,5 @@
     "enabled": "Включено",
     "disabled": "Выключено",
 
-    "install_to_unlock": "Установите \"%s\" чтобы открыть больше функций!"
+    "install_to_unlock": "Установите '%s' чтобы открыть больше функций!"
 }

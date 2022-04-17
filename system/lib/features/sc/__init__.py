@@ -8,15 +8,15 @@ from system.bytestream import Writer
 from system.lib.console import Console
 from system.lib.features.files import write_sc
 from system.lib.images import get_pixel_size, split_image, rgba2bytes
+from system.lib.xcod import FileInfo
 from system.localization import locale
 
 
-def compile_sc(_dir, from_memory=None, img_data=None, folder_export=None):
-    sc_data = None
-
+def compile_sc(_dir, file_info: FileInfo, sheets: list = None, output_folder: str = None):
     name = _dir.split('/')[-2]
-    if from_memory:
-        files = from_memory
+
+    if sheets:
+        files = sheets
     else:
         files = []
         [files.append(i) if i.endswith('.png') else None for i in os.listdir(_dir)]
@@ -28,39 +28,22 @@ def compile_sc(_dir, from_memory=None, img_data=None, folder_export=None):
     logger.info(locale.collecting_inf)
     sc = Writer()
 
-    has_xcod = False
-    use_lzham = False
-    if from_memory:
-        use_lzham = img_data['use_lzham']
-    else:
-        try:
-            sc_data = open(f'{_dir}/{name}.xcod', 'rb')
-            sc_data.read(4)
-            use_lzham, = struct.unpack('?', sc_data.read(1))
-            sc_data.read(1)
-            has_xcod = True
-        except OSError:
-            logger.info(locale.not_xcod)
-            logger.info(locale.default_types)
+    use_lzham = file_info.use_lzham
 
     for picture_index in range(len(files)):
+        sheet_info = file_info.sheets[picture_index]
         img = files[picture_index]
         print()
 
-        if from_memory:
-            file_type = img_data['data'][picture_index]['file_type']
-            pixel_type = img_data['data'][picture_index]['pixel_type']
-        else:
-            if has_xcod:
-                file_type, pixel_type, width, height = struct.unpack('>BBHH', sc_data.read(6))
+        file_type = sheet_info.file_type
+        pixel_type = sheet_info.pixel_type
 
-                if (width, height) != img.size:
-                    logger.info(locale.illegal_size % (width, height, img.width, img.height))
-                    if Console.question(locale.resize_qu):
-                        logger.info(locale.resizing)
-                        img = img.resize((width, height), Image.ANTIALIAS)
-            else:
-                file_type, pixel_type = 1, 0
+        if img.size != sheet_info.size:
+            logger.info(locale.illegal_size % (sheet_info.width, sheet_info.height, img.width, img.height))
+
+            if Console.question(locale.resize_qu):
+                logger.info(locale.resizing)
+                img = img.resize(sheet_info.size, Image.ANTIALIAS)
 
         width, height = img.size
         pixel_size = get_pixel_size(pixel_type)
@@ -81,4 +64,4 @@ def compile_sc(_dir, from_memory=None, img_data=None, folder_export=None):
     sc.write(bytes(5))
     print()
 
-    write_sc(f'{folder_export}/{name}.sc', sc.getvalue(), use_lzham)
+    write_sc(f'{output_folder}/{name}.sc', sc.getvalue(), use_lzham)

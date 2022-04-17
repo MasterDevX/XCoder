@@ -62,8 +62,7 @@ class Locale:
         self.join_pic = None
         self.png_save = None
         self.saved = None
-        self.not_xcod = None
-        self.default_types = None
+        self.xcod_not_found = None
         self.illegal_size = None
         self.resize_qu = None
         self.resizing = None

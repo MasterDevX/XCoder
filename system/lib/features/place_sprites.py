@@ -2,52 +2,47 @@ import os
 
 from PIL import Image, ImageDraw
 
-from system.bytestream import Reader
 from system.lib import Console
+from system.lib.images import pixel_type2str
+from system.lib.xcod import parse_info, FileInfo
 from system.localization import locale
 
 
-def place_sprites(xcod, folder, overwrite=False):
-    xcod = Reader(open(xcod, 'rb').read(), 'big')
-    files = os.listdir(f'{folder}{"/overwrite" if overwrite else ""}')
-    tex = os.listdir(f'{folder}/textures')
+def place_sprites(xcod_path: str, folder: str, overwrite: bool = False) -> (list, FileInfo):
+    file_info, xcod = parse_info(xcod_path)
 
-    xcod.read(4)
-    use_lzham, pictures_count = xcod.read_ubyte(), xcod.read_ubyte()
-    sheet_image = []
-    sheet_image_data = {'use_lzham': use_lzham, 'data': []}
-    for i in range(pictures_count):
-        file_type, sub_type, width, height = xcod.read_ubyte(), \
-                                             xcod.read_ubyte(), \
-                                             xcod.read_uint16(), \
-                                             xcod.read_uint16()
-        sheet_image.append(
-            Image.open(f'{folder}/textures/{tex[i]}')
+    files_to_overwrite = os.listdir(f'{folder}{"/overwrite" if overwrite else ""}')
+    texture_files = os.listdir(f'{folder}/textures')
+
+    sheets = []
+    for i in range(len(file_info.sheets)):
+        sheet_info = file_info.sheets[i]
+
+        sheets.append(
+            Image.open(f'{folder}/textures/{texture_files[i]}')
             if overwrite else
-            Image.new('RGBA', (width, height)))
-        sheet_image_data['data'].append({'file_type': file_type, 'pixel_type': sub_type})
+            Image.new(pixel_type2str(sheet_info.pixel_type), sheet_info.size)
+        )
 
     shapes_count = xcod.read_uint16()
     for shape_index in range(shapes_count):
         Console.progress_bar(locale.place_sprites_process % (shape_index + 1, shapes_count), shape_index, shapes_count)
         shape_id = xcod.read_uint16()
-        regions_count = xcod.read_uint16()
 
+        regions_count = xcod.read_uint16()
         for region_index in range(regions_count):
             texture_id, points_count = xcod.read_ubyte(), xcod.read_ubyte()
-            texture_width, texture_height = sheet_image[texture_id].width, sheet_image[texture_id].height
+            texture_width, texture_height = sheets[texture_id].width, sheets[texture_id].height
             polygon = [(xcod.read_uint16(), xcod.read_uint16()) for _ in range(points_count)]
             mirroring, rotation = xcod.read_ubyte() == 1, xcod.read_ubyte() * 90
 
             filename = f'shape_{shape_id}_{region_index}.png'
-            if filename not in files:
+            if filename not in files_to_overwrite:
                 continue
 
             tmp_region = Image.open(
                 f'{folder}{"/overwrite" if overwrite else ""}/{filename}'
-            ) \
-                .convert('RGBA') \
-                .rotate(360 - rotation, expand=True)
+            ).convert('RGBA').rotate(360 - rotation, expand=True)
 
             img_mask = Image.new('L', (texture_width, texture_height), 0)
             color = 255
@@ -71,23 +66,25 @@ def place_sprites(xcod, folder, overwrite=False):
                     img_mask.putpixel((max_x - 1, max_y - 1), color)
                 bbox = img_mask.getbbox()
 
-            a, b, c, d = bbox
-            if c - a - 1:
-                c -= 1
-            if d - b - 1:
-                d -= 1
+            left, top, right, bottom = bbox
+            if right - left - 1:
+                right -= 1
+            if bottom - top - 1:
+                bottom -= 1
 
-            bbox = a, b, c, d
+            bbox = left, top, right, bottom
 
-            region_size = bbox[2] - bbox[0], bbox[3] - bbox[1]
+            width = right - left
+            height = bottom - top
+            region_size = width, height
             tmp_region = tmp_region.resize(region_size, Image.ANTIALIAS)
 
             if mirroring:
                 tmp_region = tmp_region.transform(region_size, Image.EXTENT,
                                                   (tmp_region.width, 0, 0, tmp_region.height))
 
-            sheet_image[texture_id].paste(Image.new('RGBA', region_size), bbox[:2], img_mask.crop(bbox))
-            sheet_image[texture_id].paste(tmp_region, bbox[:2], tmp_region)
+            sheets[texture_id].paste(Image.new('RGBA', region_size), (left, top), img_mask.crop(bbox))
+            sheets[texture_id].paste(tmp_region, (left, top), tmp_region)
     print()
 
-    return sheet_image, sheet_image_data
+    return sheets, file_info

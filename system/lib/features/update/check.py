@@ -63,6 +63,7 @@ def check_update():
 
         check_for_outdated()
 
+        logger.info(locale.check_update)
         if config.version != latest_tag_name:
             logger.error(locale.not_latest)
 
