@@ -1,5 +1,7 @@
 # Refactored by Vorono4ka
 # Finished ~99%
+# Translated by yura331.com
+
 import time
 
 try:
