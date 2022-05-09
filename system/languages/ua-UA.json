@@ -35,8 +35,8 @@
     "compress_csv_description": "Запакувати файл таблиці",
 
     "other_features_label": "ІНШЕ",
-    "check_update": "Шукаємо оновлення",
-    "check_for_outdated": "Шукаємо застарілі пакети",
+    "check_update": "Шукати оновлення",
+    "check_for_outdated": "Шукати застарілі пакети",
     "reinit": "Повторити налаштування",
     "change_language": "Вибрати іншу мову",
     "clear_directories": "Очистити робочі папки",
