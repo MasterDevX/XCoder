@@ -97,13 +97,15 @@ class Region:
         self.shape_points = [_class() for _class in [Point] * self.points_count]
         self.sheet_points = [_class() for _class in [Point] * self.points_count]
 
+        multiplier = 0.5 if swf.use_lowres_texture else 1
+
         for z in range(self.points_count):
-            self.shape_points[z].x = swf.reader.read_int32() / 20
-            self.shape_points[z].y = swf.reader.read_int32() / 20
+            self.shape_points[z].x = swf.reader.read_int32() / 20 * multiplier
+            self.shape_points[z].y = swf.reader.read_int32() / 20 * multiplier
         for z in range(self.points_count):
-            w, h = [swf.reader.read_uint16() * swf.textures[self.texture_id].width / 0xffff,
-                    swf.reader.read_uint16() * swf.textures[self.texture_id].height / 0xffff]
-            x, y = [ceil(i) for i in (w, h)]
+            w, h = [swf.reader.read_uint16() * swf.textures[self.texture_id].width / 0xffff * multiplier,
+                    swf.reader.read_uint16() * swf.textures[self.texture_id].height / 0xffff * multiplier]
+            x, y = map(ceil, (w, h))
             if int(w) == x:
                 x += 1
             if int(h) == y:

@@ -11,9 +11,23 @@ from system.localization import locale
 
 
 class SupercellSWF:
+    TEXTURES_TAGS = (1, 16, 28, 29, 34, 19, 24, 27)
+    SHAPES_TAGS = (2, 18)
+    MOVIE_CLIPS_TAGS = (3, 10, 12, 14, 35)
+
+    TEXTURE_EXTENSION = '_tex.sc'
+
     def __init__(self):
+        self.filepath = None
         self.filename = None
         self.reader = None
+
+        self.use_lowres_texture = False
+        self.use_uncommon_texture = False
+        self.uncommon_texture_path = None
+
+        self.lowres_suffix = '_lowres'
+        self.highres_suffix = '_highres'
 
         self.shape_count = 0
         self.movie_clips_count = 0
@@ -34,19 +48,28 @@ class SupercellSWF:
 
         self.xcod_writer = Writer('big')
 
-    def get_export_by_id(self, movie_clip):
-        return self.exports.get(movie_clip, '_movieclip_%s' % movie_clip)
+    def load(self, filepath: str) -> (bool, bool):
+        self.filepath = filepath
 
-    def load_internal(self, filepath: str, is_texture: bool):
-        decompressed, use_lzham = open_sc(filepath)
-        self.reader = Reader(decompressed)
-        del decompressed
+        texture_loaded, use_lzham = self._load_internal(filepath, filepath.endswith('_tex.sc'))
 
+        if not texture_loaded:
+            if self.use_uncommon_texture:
+                texture_loaded, use_lzham = self._load_internal(self.uncommon_texture_path, True)
+            else:
+                texture_path = self.filepath[:-3] + SupercellSWF.TEXTURE_EXTENSION
+                texture_loaded, use_lzham = self._load_internal(texture_path, True)
+
+        return texture_loaded, use_lzham
+
+    def _load_internal(self, filepath: str, is_texture: bool) -> (bool, bool):
         self.filename = os.path.basename(filepath)
 
-        if is_texture:
-            has_texture = self.load_tags()
-        else:
+        decompressed_data, use_lzham = open_sc(filepath)
+        self.reader = Reader(decompressed_data)
+        del decompressed_data
+
+        if not is_texture:
             self.shape_count = self.reader.read_uint16()
             self.movie_clips_count = self.reader.read_uint16()
             self.textures_count = self.reader.read_uint16()
@@ -66,12 +89,12 @@ class SupercellSWF:
             self.exports = [_function() for _function in [self.reader.read_uint16] * self.export_count]
             self.exports = {export_id: self.reader.read_string() for export_id in self.exports}
 
-            has_texture = self.load_tags()
+        loaded = self._load_tags()
 
         print()
-        return has_texture, use_lzham
+        return loaded, use_lzham
 
-    def load_tags(self):
+    def _load_tags(self):
         has_texture = True
 
         texture_id = 0
@@ -84,9 +107,8 @@ class SupercellSWF:
 
             if tag == 0:
                 return has_texture
-            elif tag in [1, 16, 28, 29, 34, 19, 24, 27]:
+            elif tag in SupercellSWF.TEXTURES_TAGS:
                 if len(self.textures) <= texture_id:
-                    # Костыль, такого в либе нет, но ради фичи с вытаскиванием только текстур, можно и добавить)
                     self.textures.append(SWFTexture())
                 texture = self.textures[texture_id]
                 texture.load(self, tag, has_texture)
@@ -107,10 +129,10 @@ class SupercellSWF:
                     self.xcod_writer.write_uint16(texture.height)
                 self.textures[texture_id] = texture
                 texture_id += 1
-            elif tag in [2, 18]:
+            elif tag in SupercellSWF.SHAPES_TAGS:
                 self.shapes[loaded_shapes].load(self, tag)
                 loaded_shapes += 1
-            elif tag in [3, 10, 12, 14, 35]:  # MovieClip
+            elif tag in SupercellSWF.MOVIE_CLIPS_TAGS:  # MovieClip
                 self.movieclips[loaded_movieclips].load(self, tag)
                 loaded_movieclips += 1
             elif tag == 8:  # Matrix
@@ -127,5 +149,17 @@ class SupercellSWF:
                 ])
             elif tag == 26:
                 has_texture = False
+            elif tag == 30:
+                self.use_uncommon_texture = True
+                highres_texture_path = self.filepath[:-3] + self.highres_suffix + SupercellSWF.TEXTURE_EXTENSION
+                lowres_texture_path = self.filepath[:-3] + self.lowres_suffix + SupercellSWF.TEXTURE_EXTENSION
+
+                self.uncommon_texture_path = highres_texture_path
+                if not os.path.exists(highres_texture_path) and os.path.exists(lowres_texture_path):
+                    self.uncommon_texture_path = lowres_texture_path
+                    self.use_lowres_texture = True
             else:
                 self.reader.read(length)
+
+    def get_export_by_id(self, movie_clip):
+        return self.exports.get(movie_clip, '_movieclip_%s' % movie_clip)
