@@ -30,33 +30,22 @@ def join_image(img):
 
         x_chunks_count = width // chunk_size
         y_chunks_count = height // chunk_size
-        x_rest = width % chunk_size
-        y_rest = height % chunk_size
 
-        for y_chunk in range(y_chunks_count):
-            for x_chunk in range(x_chunks_count):
+        for y_chunk in range(y_chunks_count + 1):
+            for x_chunk in range(x_chunks_count + 1):
                 for y in range(chunk_size):
+                    pixel_y = y_chunk * chunk_size + y
+                    if pixel_y >= height:
+                        break
+
                     for x in range(chunk_size):
-                        loaded_img[x_chunk * chunk_size + x, y_chunk * chunk_size + y] = tuple(
-                            pixel_buffer.read(channels_count)
-                        )
+                        pixel_x = x_chunk * chunk_size + x
+                        if pixel_x >= width:
+                            break
 
-            for y in range(chunk_size):
-                for x in range(x_rest):
-                    loaded_img[(width - x_rest) + x, y_chunk * chunk_size + y] = tuple(
-                        pixel_buffer.read(channels_count)
-                    )
-            Console.progress_bar(locale.join_pic, y_chunk, y_chunks_count)
-        for x_chunk in range(x_chunks_count):
-            for y in range(y_rest):
-                for x in range(chunk_size):
-                    loaded_img[x_chunk * chunk_size + x, (height - y_rest) + y] = tuple(
-                        pixel_buffer.read(channels_count)
-                    )
+                        loaded_img[pixel_x, pixel_y] = tuple(pixel_buffer.read(channels_count))
 
-        for y in range(y_rest):
-            for x in range(x_rest):
-                loaded_img[x + (width - x_rest), y + (height - y_rest)] = tuple(pixel_buffer.read(channels_count))
+            Console.progress_bar(locale.join_pic, y_chunk, y_chunks_count + 1)
 
 
 def split_image(img: Image):
@@ -70,34 +59,25 @@ def split_image(img: Image):
 
     x_chunks_count = width // chunk_size
     y_chunks_count = height // chunk_size
-    x_rest = width % chunk_size
-    y_rest = height % chunk_size
 
     pixel_index = 0
 
-    for y_chunk in range(y_chunks_count):
-        for x_chunk in range(x_chunks_count):
+    for y_chunk in range(y_chunks_count + 1):
+        for x_chunk in range(x_chunks_count + 1):
             for y in range(chunk_size):
+                pixel_y = (y_chunk * chunk_size) + y
+                if pixel_y >= height:
+                    break
+
                 for x in range(chunk_size):
-                    add_pixel(loaded_clone[x + (x_chunk * chunk_size), y + (y_chunk * chunk_size)])
+                    pixel_x = (x_chunk * chunk_size) + x
+                    if pixel_x >= width:
+                        break
+
+                    add_pixel(loaded_clone[pixel_x, pixel_y])
                     pixel_index += 1
 
-        for y in range(chunk_size):
-            for x in range(x_rest):
-                add_pixel(loaded_clone[x + (width - x_rest), y + (y_chunk * chunk_size)])
-                pixel_index += 1
-        Console.progress_bar(locale.split_pic, y_chunk, y_chunks_count)
-
-    for x_chunk in range(width // chunk_size):
-        for y in range(y_rest):
-            for x in range(chunk_size):
-                add_pixel(loaded_clone[x + (x_chunk * chunk_size), y + (height - y_rest)])
-                pixel_index += 1
-
-    for y in range(y_rest):
-        for x in range(x_rest):
-            add_pixel(loaded_clone[x + (width - x_rest), y + (height - y_rest)])
-            pixel_index += 1
+        Console.progress_bar(locale.split_pic, y_chunk, y_chunks_count + 1)
 
 
 def get_pixel_size(_type):
@@ -123,7 +103,7 @@ def pixel_type2str(_type):
     raise Exception(locale.unk_type % _type)
 
 
-def bytes2rgba(data: Reader, _type, img):
+def load_texture(data: Reader, _type, img):
     read_pixel = None
     channels_count = 4
     if _type in (0, 1):
@@ -175,7 +155,7 @@ def bytes2rgba(data: Reader, _type, img):
     print()
 
 
-def rgba2bytes(sc, img, _type):
+def save_texture(sc, img, _type):
     write_pixel = None
     if _type in (0, 1):
         def write_pixel(pixel):

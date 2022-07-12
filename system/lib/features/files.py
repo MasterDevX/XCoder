@@ -25,7 +25,7 @@ def write_sc(output_filename: str, buffer: bytes, use_lzham: bool):
 
 
 def open_sc(input_filename: str):
-    decompressed = None
+    decompressed_data = None
     use_lzham = False
 
     logger.info(locale.collecting_inf)
@@ -36,7 +36,7 @@ def open_sc(input_filename: str):
     try:
         if b'START' in file_data:
             file_data = file_data[:file_data.index(b'START')]
-        decompressed, signature = decompress(file_data)
+        decompressed_data, signature = decompress(file_data)
         #
         # logger.info(locale.detected_comp % signature.upper())
         #
@@ -46,4 +46,4 @@ def open_sc(input_filename: str):
         logger.info(locale.decompression_error)
         exit(1)
 
-    return decompressed, use_lzham
+    return decompressed_data, use_lzham

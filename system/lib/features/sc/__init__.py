@@ -7,7 +7,7 @@ from loguru import logger
 from system.bytestream import Writer
 from system.lib.console import Console
 from system.lib.features.files import write_sc
-from system.lib.images import get_pixel_size, split_image, rgba2bytes
+from system.lib.images import get_pixel_size, split_image, save_texture
 from system.lib.xcod import FileInfo
 from system.localization import locale
 
@@ -58,7 +58,7 @@ def compile_sc(_dir, file_info: FileInfo, sheets: list = None, output_folder: st
             split_image(img)
             print()
 
-        rgba2bytes(sc, img, pixel_type)
+        save_texture(sc, img, pixel_type)
         print()
 
     sc.write(bytes(5))
