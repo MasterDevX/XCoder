@@ -1,7 +1,7 @@
 class Point:
-    def __init__(self, x=0, y=0):
-        self.x = x
-        self.y = y
+    def __init__(self, x: float = 0, y: float = 0):
+        self.x: float = x
+        self.y: float = y
         
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y
@@ -24,10 +24,10 @@ class Point:
         return str(self.position)
 
     @property
-    def position(self):
+    def position(self) -> (float, float):
         return self.x, self.y
 
     @position.setter
-    def position(self, value):
+    def position(self, value: (float, float)):
         self.x = value[0]
         self.y = value[1]

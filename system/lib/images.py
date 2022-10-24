@@ -7,8 +7,10 @@ from system.bytestream import Reader
 from system.lib.console import Console
 from system.localization import locale
 
+CHUNK_SIZE = 32
 
-def load_image_from_buffer(img):
+
+def load_image_from_buffer(img: Image) -> None:
     width, height = img.size
     img_loaded = img.load()
 
@@ -20,26 +22,25 @@ def load_image_from_buffer(img):
                 img_loaded[x, y] = tuple(pixel_buffer.read(channels_count))
 
 
-def join_image(img):
+def join_image(img: Image) -> None:
     with open('pixel_buffer', 'rb') as pixel_buffer:
         channels_count = int.from_bytes(pixel_buffer.read(1), 'little')
 
         width, height = img.size
         loaded_img = img.load()
-        chunk_size = 32
 
-        x_chunks_count = width // chunk_size
-        y_chunks_count = height // chunk_size
+        x_chunks_count = width // CHUNK_SIZE
+        y_chunks_count = height // CHUNK_SIZE
 
         for y_chunk in range(y_chunks_count + 1):
             for x_chunk in range(x_chunks_count + 1):
-                for y in range(chunk_size):
-                    pixel_y = y_chunk * chunk_size + y
+                for y in range(CHUNK_SIZE):
+                    pixel_y = y_chunk * CHUNK_SIZE + y
                     if pixel_y >= height:
                         break
 
-                    for x in range(chunk_size):
-                        pixel_x = x_chunk * chunk_size + x
+                    for x in range(CHUNK_SIZE):
+                        pixel_x = x_chunk * CHUNK_SIZE + x
                         if pixel_x >= width:
                             break
 
@@ -55,22 +56,21 @@ def split_image(img: Image):
     width, height = img.size
     loaded_image = img.load()
     loaded_clone = img.copy().load()
-    chunk_size = 32
 
-    x_chunks_count = width // chunk_size
-    y_chunks_count = height // chunk_size
+    x_chunks_count = width // CHUNK_SIZE
+    y_chunks_count = height // CHUNK_SIZE
 
     pixel_index = 0
 
     for y_chunk in range(y_chunks_count + 1):
         for x_chunk in range(x_chunks_count + 1):
-            for y in range(chunk_size):
-                pixel_y = (y_chunk * chunk_size) + y
+            for y in range(CHUNK_SIZE):
+                pixel_y = (y_chunk * CHUNK_SIZE) + y
                 if pixel_y >= height:
                     break
 
-                for x in range(chunk_size):
-                    pixel_x = (x_chunk * chunk_size) + x
+                for x in range(CHUNK_SIZE):
+                    pixel_x = (x_chunk * CHUNK_SIZE) + x
                     if pixel_x >= width:
                         break
 
@@ -90,7 +90,7 @@ def get_pixel_size(_type):
     raise Exception(locale.unk_type % _type)
 
 
-def pixel_type2str(_type):
+def get_format_by_pixel_type(_type):
     if _type in (0, 1, 2, 3):
         return 'RGBA'
     elif _type == 4:

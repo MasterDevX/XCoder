@@ -5,9 +5,9 @@ from system.lib.swf import SupercellSWF
 from system.localization import locale
 
 
-def cut_sprites(swf: SupercellSWF, folder_export):
-    os.makedirs(f'{folder_export}/overwrite', exist_ok=True)
-    os.makedirs(f'{folder_export}/shapes', exist_ok=True)
+def cut_sprites(swf: SupercellSWF, export_folder: str):
+    os.makedirs(f'{export_folder}/overwrite', exist_ok=True)
+    os.makedirs(f'{export_folder}/shapes', exist_ok=True)
 
     shapes_count = len(swf.shapes)
     swf.xcod_writer.write_uint16(shapes_count)
@@ -22,7 +22,7 @@ def cut_sprites(swf: SupercellSWF, folder_export):
         shape = swf.shapes[shape_index]
 
         rendered_shape = shape.render(swf)
-        rendered_shape.save(f'{folder_export}/shapes/{shape.id}.png')
+        rendered_shape.save(f'{export_folder}/shapes/{shape.id}.png')
 
         regions_count = len(shape.regions)
         swf.xcod_writer.write_uint16(shape.id)
@@ -40,5 +40,4 @@ def cut_sprites(swf: SupercellSWF, folder_export):
             swf.xcod_writer.write_ubyte(region.rotation // 90)
 
             rendered_region = region.render(swf)
-            rendered_region.save(f'{folder_export}/shape_{shape.id}_{region_index}.png')
-    print()
+            rendered_region.save(f'{export_folder}/shape_{shape.id}_{region_index}.png')

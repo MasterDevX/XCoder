@@ -2,7 +2,7 @@ import os
 
 from PIL import Image
 
-from system.lib.images import pixel_type2str, load_texture, join_image, load_image_from_buffer
+from system.lib.images import get_format_by_pixel_type, load_texture, join_image, load_image_from_buffer
 
 
 class SWFTexture:
@@ -19,11 +19,11 @@ class SWFTexture:
         self.width, self.height = (swf.reader.read_uint16(), swf.reader.read_uint16())
 
         if has_texture:
-            img = Image.new(pixel_type2str(self.pixel_type), (self.width, self.height))
+            img = Image.new(get_format_by_pixel_type(self.pixel_type), (self.width, self.height))
 
             load_texture(swf.reader, self.pixel_type, img)
 
-            if tag in (27, 28):
+            if tag in (27, 28, 29):
                 join_image(img)
                 print()
             else:

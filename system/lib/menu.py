@@ -1,4 +1,6 @@
 import shutil
+import textwrap
+import typing
 
 import colorama
 
@@ -6,27 +8,24 @@ from system.lib.config import config
 from system.localization import locale
 
 
-def print_feature(name: str, description: str = None, console_width: int = -1):
-    print(name, end='')
+def print_feature(feature_id: int, name: str, description: str = None, console_width: int = -1):
+    text = f' {feature_id} {name}'
     if description:
-        print(' ' * (console_width // 2 - len(name)) + ': ' + description, end='')
-    print()
+        text += ' ' * (console_width // 2 - len(text)) + ': ' + description
+
+    print(textwrap.fill(text, console_width))
 
 
-def print_category(text):
-    return print(colorama.Back.GREEN + colorama.Fore.BLACK + text + ' ' * (10 - len(text)) + colorama.Style.RESET_ALL)
-
-
-def print_line(console_width):
-    print((console_width - 1) * '-')
+def print_category(text: str, background_width: int = 10):
+    print(colorama.Back.GREEN + colorama.Fore.BLACK + text + ' ' * (background_width - len(text)) + colorama.Style.RESET_ALL)
 
 
 class Menu:
     class Item:
-        def __init__(self, name, description=None, handler=None):
-            self.name = name
-            self.description = description
-            self.handler = handler
+        def __init__(self, name: str, description: str = None, handler: typing.Callable = None):
+            self.name: str = name
+            self.description: str = description
+            self.handler: typing.Callable = handler
 
     class Category:
         def __init__(self, _id: int, name: str):
@@ -57,14 +56,14 @@ class Menu:
             colorama.Style.RESET_ALL
         ).center(console_width + 12))
         print('github.com/Vorono4ka/XCoder'.center(console_width - 1))
-        print_line(console_width)
+        Menu._print_divider_line(console_width)
 
         for category in self.categories:
             print_category(category.name)
             for item_index in range(len(category.items)):
                 item = category.items[item_index]
-                print_feature(f' {category.id * 10 + item_index + 1} {item.name}', item.description, console_width)
-            print_line(console_width)
+                print_feature(category.id * 10 + item_index + 1, item.name, item.description, console_width)
+            Menu._print_divider_line(console_width)
 
         choice = input(locale.choice)
         try:
@@ -73,7 +72,7 @@ class Menu:
                 return None
         except ValueError:
             return None
-        print_line(console_width)
+        Menu._print_divider_line(console_width)
 
         category_id = choice // 10
         item_index = choice % 10
@@ -84,6 +83,10 @@ class Menu:
                     return item.handler
                 break
         return None
+
+    @staticmethod
+    def _print_divider_line(console_width: int):
+        print((console_width - 1) * '-')
 
 
 menu = Menu()

@@ -99,19 +99,19 @@ class Region:
 
         multiplier = 0.5 if swf.use_lowres_texture else 1
 
-        for z in range(self.points_count):
-            self.shape_points[z].x = swf.reader.read_int32() / 20 * multiplier
-            self.shape_points[z].y = swf.reader.read_int32() / 20 * multiplier
-        for z in range(self.points_count):
-            w, h = [swf.reader.read_uint16() * swf.textures[self.texture_id].width / 0xffff * multiplier,
-                    swf.reader.read_uint16() * swf.textures[self.texture_id].height / 0xffff * multiplier]
-            x, y = map(ceil, (w, h))
-            if int(w) == x:
-                x += 1
-            if int(h) == y:
-                y += 1
+        for i in range(self.points_count):
+            self.shape_points[i].x = swf.reader.read_int32() / 20
+            self.shape_points[i].y = swf.reader.read_int32() / 20
+        for i in range(self.points_count):
+            u, v = (swf.reader.read_uint16() * swf.textures[self.texture_id].width / 0xffff * multiplier,
+                    swf.reader.read_uint16() * swf.textures[self.texture_id].height / 0xffff * multiplier)
+            u_rounded, v_rounded = map(ceil, (u, v))
+            if int(u) == u_rounded:
+                u_rounded += 1
+            if int(v) == v_rounded:
+                v_rounded += 1
 
-            self.sheet_points[z].position = (x, y)
+            self.sheet_points[i].position = (u_rounded, v_rounded)
 
     def render(self, swf):
         sheet_left = min(point.x for point in self.sheet_points)

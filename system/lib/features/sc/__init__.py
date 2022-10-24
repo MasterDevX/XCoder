@@ -56,10 +56,8 @@ def compile_sc(_dir, file_info: FileInfo, sheets: list = None, output_folder: st
 
         if file_type in (27, 28):
             split_image(img)
-            print()
 
         save_texture(sc, img, pixel_type)
-        print()
 
     sc.write(bytes(5))
     print()

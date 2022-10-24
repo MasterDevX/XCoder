@@ -41,7 +41,7 @@ class SupercellSWF:
         self.exports = {}
 
         self.shapes = []
-        self.movieclips = []
+        self.movie_clips = []
         self.textures = []
 
         self.matrices = []
@@ -78,7 +78,7 @@ class SupercellSWF:
             self.color_transformation_count = self.reader.read_uint16()
 
             self.shapes = [_class() for _class in [Shape] * self.shape_count]
-            self.movieclips = [_class() for _class in [MovieClip] * self.movie_clips_count]
+            self.movie_clips = [_class() for _class in [MovieClip] * self.movie_clips_count]
             self.textures = [_class() for _class in [SWFTexture] * self.textures_count]
 
             self.reader.read_uint32()
@@ -98,8 +98,8 @@ class SupercellSWF:
         has_texture = True
 
         texture_id = 0
-        loaded_movieclips = 0
-        loaded_shapes = 0
+        movie_clips_loaded = 0
+        shapes_loaded = 0
 
         while True:
             tag = self.reader.read_byte()
@@ -108,8 +108,6 @@ class SupercellSWF:
             if tag == 0:
                 return has_texture
             elif tag in SupercellSWF.TEXTURES_TAGS:
-                if len(self.textures) <= texture_id:
-                    self.textures.append(SWFTexture())
                 texture = self.textures[texture_id]
                 texture.load(self, tag, has_texture)
 
@@ -130,11 +128,11 @@ class SupercellSWF:
                 self.textures[texture_id] = texture
                 texture_id += 1
             elif tag in SupercellSWF.SHAPES_TAGS:
-                self.shapes[loaded_shapes].load(self, tag)
-                loaded_shapes += 1
+                self.shapes[shapes_loaded].load(self, tag)
+                shapes_loaded += 1
             elif tag in SupercellSWF.MOVIE_CLIPS_TAGS:  # MovieClip
-                self.movieclips[loaded_movieclips].load(self, tag)
-                loaded_movieclips += 1
+                self.movie_clips[movie_clips_loaded].load(self, tag)
+                movie_clips_loaded += 1
             elif tag == 8:  # Matrix
                 scale_x = self.reader.read_int32() / 1024
                 rotation_x = self.reader.read_int32() / 1024

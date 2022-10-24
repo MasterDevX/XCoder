@@ -3,7 +3,7 @@ import os
 from PIL import Image, ImageDraw
 
 from system.lib import Console
-from system.lib.images import pixel_type2str
+from system.lib.images import get_format_by_pixel_type
 from system.lib.xcod import parse_info, FileInfo
 from system.localization import locale
 
@@ -21,7 +21,7 @@ def place_sprites(xcod_path: str, folder: str, overwrite: bool = False) -> (list
         sheets.append(
             Image.open(f'{folder}/textures/{texture_files[i]}')
             if overwrite else
-            Image.new(pixel_type2str(sheet_info.pixel_type), sheet_info.size)
+            Image.new(get_format_by_pixel_type(sheet_info.pixel_type), sheet_info.size)
         )
 
     shapes_count = xcod.read_uint16()

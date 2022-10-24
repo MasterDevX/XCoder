@@ -1,31 +1,36 @@
-import sys
-
-
 class Console:
     @staticmethod
-    def progress_bar(message, current, total, start=0, end=100):
-        sys.stdout.write(f"\r[{((current + 1) * end + start) // total + start}%] {message}")
+    def progress_bar(message, current, total):
+        percentage = (current + 1) * 100 // total
+        print('\r', end='')
+        print(f'[{percentage}%] {message}', end='')
+        if current + 1 == total:
+            print()
 
     @staticmethod
-    def percent(current, total):
+    def percent(current: int, total: int) -> int:
         return (current + 1) * 100 // total
 
     @staticmethod
-    def ask_integer(message):
-        try:
-            return int(input(f'[????] {message}: '))
-        except ValueError:
-            return Console.ask_integer(message)
+    def ask_integer(message: str):
+        while True:
+            try:
+                return int(input(f'[????] {message}: '))
+            except ValueError:
+                pass
 
     @staticmethod
     def question(message):
-        answer = input(f'[????] {message} [Y/n] ').lower()
-        if answer in 'ny':
-            return 'ny'.index(answer)
-        else:
-            return Console.question(message)
+        answer = None
+        while not answer in 'ny':
+            answer = input(f'[????] {message} [Y/n] ').lower()
+        
+        return 'ny'.index(answer)
 
 
 if __name__ == '__main__':
     console = Console()
-    console.ask_integer('Please, type any integer: ')
+    console.ask_integer('Please, type any integer')
+
+    for i in range(1000):
+        console.progress_bar('Test progress bar', i, 1000)
