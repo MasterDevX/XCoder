@@ -114,7 +114,7 @@ class Locale:
     def change(self):
         language_files = os.listdir('./system/languages/')
 
-        print('Select Language\nВыберите язык\n')
+        print('Select Language\nВыберите язык\nВиберіть Мову\n')
 
         for file_index in range(len(language_files)):
             language_path = './system/languages/' + language_files[file_index]
