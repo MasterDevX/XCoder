@@ -2,7 +2,7 @@ import os
 
 from PIL import Image
 
-from system.lib.images import pixel_type2str, bytes2rgba, join_image, load_image_from_buffer
+from system.lib.images import pixel_type2str, load_texture, join_image, load_image_from_buffer
 
 
 class SWFTexture:
@@ -21,7 +21,7 @@ class SWFTexture:
         if has_texture:
             img = Image.new(pixel_type2str(self.pixel_type), (self.width, self.height))
 
-            bytes2rgba(swf.reader, self.pixel_type, img)
+            load_texture(swf.reader, self.pixel_type, img)
 
             if tag in (27, 28):
                 join_image(img)
