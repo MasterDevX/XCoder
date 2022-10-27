@@ -34,7 +34,7 @@ def place_sprites(xcod_path: str, folder: str, overwrite: bool = False) -> (list
             texture_id, points_count = xcod.read_ubyte(), xcod.read_ubyte()
             texture_width, texture_height = sheets[texture_id].width, sheets[texture_id].height
             polygon = [(xcod.read_uint16(), xcod.read_uint16()) for _ in range(points_count)]
-            mirroring, rotation = xcod.read_ubyte() == 1, xcod.read_ubyte() * 90
+            mirroring, rotation = xcod.read_ubyte() == 1, xcod.read_byte() * 90
 
             filename = f'shape_{shape_id}_{region_index}.png'
             if filename not in files_to_overwrite:
@@ -42,7 +42,7 @@ def place_sprites(xcod_path: str, folder: str, overwrite: bool = False) -> (list
 
             tmp_region = Image.open(
                 f'{folder}{"/overwrite" if overwrite else ""}/{filename}'
-            ).convert('RGBA').rotate(360 - rotation, expand=True)
+            ).convert('RGBA').rotate(-rotation, expand=True)
 
             img_mask = Image.new('L', (texture_width, texture_height), 0)
             color = 255
@@ -80,8 +80,7 @@ def place_sprites(xcod_path: str, folder: str, overwrite: bool = False) -> (list
             tmp_region = tmp_region.resize(region_size, Image.ANTIALIAS)
 
             if mirroring:
-                tmp_region = tmp_region.transform(region_size, Image.EXTENT,
-                                                  (tmp_region.width, 0, 0, tmp_region.height))
+                tmp_region = tmp_region.transpose(Image.FLIP_LEFT_RIGHT)
 
             sheets[texture_id].paste(Image.new('RGBA', region_size), (left, top), img_mask.crop(bbox))
             sheets[texture_id].paste(tmp_region, (left, top), tmp_region)

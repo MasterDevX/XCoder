@@ -24,4 +24,4 @@ def sc1_encode(overwrite: bool = False):
                 compile_sc(f'{folder}{file}/', file_info, sheets, output_folder)
             except Exception as exception:
                 logger.exception(locale.error % (exception.__class__.__module__, exception.__class__.__name__, exception))
-            print()
+        print()

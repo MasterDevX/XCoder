@@ -73,7 +73,6 @@
     "cut_sprites_process": "Cutting sprites... (%d/%d)",
     "place_sprites_process": "Placing sprites... (%d/%d)",
     "not_implemented": "This feature will be added in future updates.\nYou can follow XCoder updates here: github.com/Vorono4ka/XCoder",
-    "want_exit": "Want to exit?",
     "dec_sc": "Decoding .sc file...",
     "error": "ERROR! (%s.%s: %s)",
     "e1sc1": "Overwrite SC sprites",

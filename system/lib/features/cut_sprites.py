@@ -30,14 +30,14 @@ def cut_sprites(swf: SupercellSWF, export_folder: str):
         for region_index in range(regions_count):
             region = shape.regions[region_index]
 
-            swf.xcod_writer.write_ubyte(region.texture_id)
-            swf.xcod_writer.write_ubyte(region.points_count)
+            swf.xcod_writer.write_ubyte(region.texture_index)
+            swf.xcod_writer.write_ubyte(region.get_points_count())
 
-            for point in region.sheet_points:
-                swf.xcod_writer.write_uint16(int(point.x))
-                swf.xcod_writer.write_uint16(int(point.y))
-            swf.xcod_writer.write_ubyte(1 if region.mirroring else 0)
-            swf.xcod_writer.write_ubyte(region.rotation // 90)
+            for i in range(region.get_points_count()):
+                swf.xcod_writer.write_uint16(int(region.get_u(i)))
+                swf.xcod_writer.write_uint16(int(region.get_v(i)))
+            swf.xcod_writer.write_ubyte(1 if region.is_mirrored else 0)
+            swf.xcod_writer.write_byte(region.rotation // 90)
 
             rendered_region = region.render(swf)
             rendered_region.save(f'{export_folder}/shape_{shape.id}_{region_index}.png')

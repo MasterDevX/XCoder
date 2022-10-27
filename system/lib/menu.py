@@ -56,14 +56,14 @@ class Menu:
             colorama.Style.RESET_ALL
         ).center(console_width + 12))
         print('github.com/Vorono4ka/XCoder'.center(console_width - 1))
-        Menu._print_divider_line(console_width)
+        self._print_divider_line(console_width)
 
         for category in self.categories:
             print_category(category.name)
             for item_index in range(len(category.items)):
                 item = category.items[item_index]
                 print_feature(category.id * 10 + item_index + 1, item.name, item.description, console_width)
-            Menu._print_divider_line(console_width)
+            self._print_divider_line(console_width)
 
         choice = input(locale.choice)
         try:
@@ -72,7 +72,7 @@ class Menu:
                 return None
         except ValueError:
             return None
-        Menu._print_divider_line(console_width)
+        self._print_divider_line(console_width)
 
         category_id = choice // 10
         item_index = choice % 10

@@ -1,21 +1,19 @@
 # Refactored by Vorono4ka
 # Finished ~99%
-# Translated by yura331.com
 
 import time
 
 try:
     from loguru import logger
 except ImportError:
-    print('Please, install loguru using pip')
-    exit()
+    raise RuntimeError('Please, install loguru using pip')
 
 from system import clear
-from system.lib import config, Console, locale, refill_menu, menu
+from system.lib import config, locale, refill_menu, menu
 from system.lib.features.initialization import initialize
 
 
-if __name__ == '__main__':
+def main():
     if not config.initialized:
         config.change_language(locale.change())
 
@@ -26,16 +24,19 @@ if __name__ == '__main__':
     refill_menu()
 
     while True:
-        try:
-            handler = menu.choice()
-            if handler is not None:
-                start_time = time.time()
-                with logger.catch():
-                    handler()
-                logger.opt(colors=True).info(f'<green>{locale.done % (time.time() - start_time)}</green>')
-                input(locale.to_continue)
-            clear()
-        except KeyboardInterrupt:
-            if Console.question(locale.want_exit):
-                clear()
-                break
+        handler = menu.choice()
+        if handler is not None:
+            start_time = time.time()
+            with logger.catch():
+                handler()
+            logger.opt(colors=True).info(f'<green>{locale.done % (time.time() - start_time)}</green>')
+            input(locale.to_continue)
+        clear()
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        logger.info('Exit.')
+        pass

@@ -25,7 +25,6 @@ class SWFTexture:
 
             if tag in (27, 28, 29):
                 join_image(img)
-                print()
             else:
                 load_image_from_buffer(img)
 

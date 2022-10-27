@@ -152,7 +152,6 @@ def load_texture(data: Reader, _type, img):
             if curr > point:
                 Console.progress_bar(locale.crt_pic, y, height)
                 point = curr
-    print()
 
 
 def save_texture(sc, img, _type):

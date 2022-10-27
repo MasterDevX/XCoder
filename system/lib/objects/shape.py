@@ -1,4 +1,5 @@
-from math import ceil
+from math import ceil, degrees, atan2
+from typing import List, Tuple
 
 from PIL import Image, ImageDraw
 
@@ -31,15 +32,13 @@ class Shape:
                 swf.reader.read(region_length)
 
     def render(self, swf, matrix=None):
-        for region in self.regions:
-            region.transformed_points = list(region.shape_points)
-
-            if matrix is not None:
+        if matrix is not None:
+            for region in self.regions:
                 region.transformed_points = []
-                for point in region.shape_points:
+                for index in range(region.get_points_count()):
                     region.transformed_points.append(Point(
-                        point.x * matrix[0] + point.y * matrix[3] + matrix[2],
-                        point.x * matrix[1] + point.y * matrix[4] + matrix[5]
+                        region.get_x(index) * matrix[0] + region.get_y(index) * matrix[3] + matrix[2],
+                        region.get_x(index) * matrix[1] + region.get_y(index) * matrix[4] + matrix[5]
                     ))
 
         shape_left = 0
@@ -74,189 +73,176 @@ class Shape:
 
 class Region:
     def __init__(self):
-        self.texture_id = 0
-        self.points_count = 0
+        self.texture_index = 0
         self.rotation = 0
-        self.mirroring = 0
-        self.shape_points = []
+        self.is_mirrored = 0
         self.transformed_points = []
-        self.sheet_points = []
-        self.size = (0, 0)
+
+        self._points_count = 0
+        self._xy_points = []
+        self._uv_points = []
 
         self.texture = None
 
     def load(self, swf, tag: int):
-        self.texture_id = swf.reader.read_ubyte()
+        self.texture_index = swf.reader.read_ubyte()
 
-        self.texture = swf.textures[self.texture_id]
+        self.texture = swf.textures[self.texture_index]
 
-        self.points_count = 4
+        self._points_count = 4
         if tag != 4:
-            self.points_count = swf.reader.read_ubyte()
+            self._points_count = swf.reader.read_ubyte()
 
-        self.shape_points = [_class() for _class in [Point] * self.points_count]
-        self.sheet_points = [_class() for _class in [Point] * self.points_count]
+        self._xy_points = [_class() for _class in [Point] * self._points_count]
+        self.transformed_points = self._xy_points
+        self._uv_points = [_class() for _class in [Point] * self._points_count]
 
         multiplier = 0.5 if swf.use_lowres_texture else 1
 
-        for i in range(self.points_count):
-            self.shape_points[i].x = swf.reader.read_int32() / 20
-            self.shape_points[i].y = swf.reader.read_int32() / 20
-        for i in range(self.points_count):
-            u, v = (swf.reader.read_uint16() * swf.textures[self.texture_id].width / 0xffff * multiplier,
-                    swf.reader.read_uint16() * swf.textures[self.texture_id].height / 0xffff * multiplier)
+        for i in range(self._points_count):
+            self._xy_points[i].x = swf.reader.read_int32() / 20
+            self._xy_points[i].y = swf.reader.read_int32() / 20
+        for i in range(self._points_count):
+            u, v = (swf.reader.read_uint16() * swf.textures[self.texture_index].width / 0xffff * multiplier,
+                    swf.reader.read_uint16() * swf.textures[self.texture_index].height / 0xffff * multiplier)
             u_rounded, v_rounded = map(ceil, (u, v))
             if int(u) == u_rounded:
                 u_rounded += 1
             if int(v) == v_rounded:
                 v_rounded += 1
 
-            self.sheet_points[i].position = (u_rounded, v_rounded)
+            self._uv_points[i].position = (u_rounded, v_rounded)
 
     def render(self, swf):
-        sheet_left = min(point.x for point in self.sheet_points)
-        sheet_right = max(point.x for point in self.sheet_points)
-        sheet_top = min(point.y for point in self.sheet_points)
-        sheet_bottom = max(point.y for point in self.sheet_points)
+        width, height = get_size(*get_sides(self.transformed_points))
+        width, height = max(width, 1), max(height, 1)
 
-        shape_left = min(point.x for point in self.transformed_points)
-        shape_right = max(point.x for point in self.transformed_points)
-        shape_top = min(point.y for point in self.transformed_points)
-        shape_bottom = max(point.y for point in self.transformed_points)
+        self.rotation, self.is_mirrored = self.calculate_rotation(True)
 
-        width, height = shape_right - shape_left, shape_bottom - shape_top
-        self.size = ceil(width), ceil(height)
+        rendered_region = self.get_image()
+        rendered_region = rendered_region.rotate(-self.rotation, expand=True)
+        if self.is_mirrored:
+            rendered_region = rendered_region.transpose(Image.FLIP_LEFT_RIGHT)
+        rendered_region = rendered_region.resize((width, height), Image.ANTIALIAS)
+        return rendered_region
 
-        self.rotation = calculate_rotation(self)
-        if self.rotation in (90, 270):
-            self.size = self.size[::-1]
-
+    def get_image(self):
         img_mask = Image.new('L', (self.texture.width, self.texture.height), 0)
+
         color = 255
-        ImageDraw.Draw(img_mask).polygon([point.position for point in self.sheet_points], fill=color)
-        bbox = img_mask.getbbox()
-        if not bbox:
-            if sheet_bottom - sheet_top != 0:
-                for _y in range(sheet_bottom - sheet_top):
-                    img_mask.putpixel((sheet_right - 1, sheet_top + _y - 1), color)
-            elif sheet_right - sheet_left != 0:
-                for _x in range(sheet_right - sheet_left):
-                    img_mask.putpixel((sheet_left + _x - 1, sheet_bottom - 1), color)
-            else:
-                img_mask.putpixel((sheet_right - 1, sheet_bottom - 1), color)
-            bbox = img_mask.getbbox()
+        ImageDraw.Draw(img_mask).polygon([point.position for point in self._uv_points], fill=color)
 
-        a, b, c, d = bbox
-        if c - a - 1:
-            c -= 1
-        if d - b - 1:
-            d -= 1
+        left, top, right, bottom = get_sides(self._uv_points)
+        width, height = get_size(left, top, right, bottom)
+        width, height = max(width, 1), max(height, 1)
 
-        bbox = a, b, c, d
+        if width == 1:
+            right += 1
 
-        region_size = (bbox[2] - bbox[0], bbox[3] - bbox[1])
+        if height == 1:
+            bottom += 1
 
-        tmp_region = Image.new('RGBA', region_size)
-        tmp_region.paste(self.texture.image.crop(bbox), (0, 0), img_mask.crop(bbox))
-        if self.mirroring:
-            tmp_region = tmp_region.transform(region_size, Image.EXTENT, (region_size[0], 0, 0, region_size[1]))
-        tmp_region = tmp_region.resize(self.size, Image.ANTIALIAS).rotate(self.rotation, expand=True)
-        return tmp_region
+        bbox = left, top, right, bottom
+
+        rendered_region = Image.new('RGBA', (width, height))
+        rendered_region.paste(self.texture.image.crop(bbox), (0, 0), img_mask.crop(bbox))
+
+        return rendered_region
+
+    def get_points_count(self):
+        return self._points_count
+
+    def get_uv(self, index: int):
+        return self._uv_points[index]
+
+    def get_u(self, index: int):
+        return self._uv_points[index].x
+
+    def get_v(self, index: int):
+        return self._uv_points[index].y
+
+    def get_xy(self, index: int):
+        return self._xy_points[index]
+
+    def get_x(self, index: int):
+        return self._xy_points[index].x
+
+    def get_y(self, index: int):
+        return self._xy_points[index].y
+
+    def calculate_rotation(self, round_to_nearest: bool = False) -> (int, bool):
+        """Calculates rotation and if region is mirrored.
+
+        :param round_to_nearest: should round to a multiple of 90
+        :return: rotation angle, is mirroring
+        """
+
+        def is_clockwise(points):
+            points_sum = 0
+            for i in range(len(points)):
+                x1, y1 = points[(i + 1) % len(points)].position
+                x2, y2 = points[i].position
+                points_sum += (x1 - x2) * (y1 + y2)
+            return points_sum > 0
+
+        is_uv_clockwise = is_clockwise(self._uv_points)
+        is_xy_clockwise = is_clockwise(self._xy_points)
+
+        mirroring = not (is_uv_clockwise == is_xy_clockwise)
+
+        dx = self._xy_points[1].x - self._xy_points[0].x
+        dy = self._xy_points[1].y - self._xy_points[0].y
+        du = self._uv_points[1].x - self._uv_points[0].x
+        dv = self._uv_points[1].y - self._uv_points[0].y
+
+        angle_xy = degrees(atan2(dy, dx)) % 360
+        angle_uv = degrees(atan2(dv, du)) % 360
+
+        angle = angle_xy - angle_uv
+
+        if mirroring:
+            angle -= 180
+
+        angle = (angle + 360) % 360
+
+        if round_to_nearest:
+            angle = round(angle / 90) * 90
+
+        return angle, mirroring
 
 
-def calculate_rotation(region):
-    def calc_sum(points):
-        x1, y1 = points[(z + 1) % num_points].position
-        x2, y2 = points[z].position
-        return (x1 - x2) * (y1 + y2)
+def get_size(left: float, top: float, right: float, bottom: float) -> (int, int):
+    """Returns width and height of given rect.
 
-    sum_sheet = 0
-    sum_shape = 0
-    num_points = region.points_count
+    :param left:
+    :param top:
+    :param right:
+    :param bottom:
+    :return: width, height
+    """
+    return int(right - left), int(bottom - top)
 
-    for z in range(num_points):
-        sum_sheet += calc_sum(region.sheet_points)
-        sum_shape += calc_sum(region.transformed_points)
 
-    sheet_orientation = -1 if (sum_sheet < 0) else 1
-    shape_orientation = -1 if (sum_shape < 0) else 1
+def get_sides(points: List[Tuple[float, float]] or List[Point]) -> (float, float, float, float):
+    """Calculates and returns rect sides.
 
-    region.mirroring = int(not (shape_orientation == sheet_orientation))
-
-    sheet_pos_0 = region.sheet_points[0]
-    sheet_pos_1 = region.sheet_points[1]
-    shape_pos_0 = region.transformed_points[0]
-    shape_pos_1 = region.transformed_points[1]
-
-    if sheet_pos_0 == sheet_pos_1:
-        sheet_pos_0 = Point(sheet_pos_0.x + 1, sheet_pos_0.y)
-
-    if region.mirroring:
-        shape_pos_0 = Point(shape_pos_0.x * -1, shape_pos_0.y)
-        shape_pos_1 = Point(shape_pos_1.x * -1, shape_pos_1.y)
-
-    if sheet_pos_1.x > sheet_pos_0.x:
-        sheet_x = 1
-    elif sheet_pos_1.x < sheet_pos_0.x:
-        sheet_x = 2
-    else:
-        sheet_x = 3
-
-    if sheet_pos_1.y < sheet_pos_0.y:
-        sheet_y = 1
-    elif sheet_pos_1.y > sheet_pos_0.y:
-        sheet_y = 2
-    else:
-        sheet_y = 3
-
-    if shape_pos_1.x > shape_pos_0.x:
-        shape_x = 1
-    elif shape_pos_1.x < shape_pos_0.x:
-        shape_x = 2
-    else:
-        shape_x = 3
-
-    if shape_pos_1.y > shape_pos_0.y:
-        shape_y = 1
-    elif shape_pos_1.y < shape_pos_0.y:
-        shape_y = 2
-    else:
-        shape_y = 3
-
-    rotation = 0
-    if sheet_x == shape_x and sheet_y == shape_y:
-        rotation = 0
-    elif sheet_x == 3:
-        if sheet_x == shape_y:
-            if sheet_y == shape_x:
-                rotation = 1
-            else:
-                rotation = 3
+    :param points: polygon points
+    :return: left, top, right, bottom
+    """
+    if len(points) > 0:
+        point = points[0]
+        if type(point) is Point:
+            left = min(point.x for point in points)
+            top = min(point.y for point in points)
+            right = max(point.x for point in points)
+            bottom = max(point.y for point in points)
+        elif type(point) is tuple:
+            left = min(x for x, _ in points)
+            top = min(y for _, y in points)
+            right = max(x for x, _ in points)
+            bottom = max(y for _, y in points)
         else:
-            rotation = 2
-    elif sheet_y == 3:
-        if sheet_y == shape_x:
-            if sheet_x == shape_y:
-                rotation = 3
-            else:
-                rotation = 1
-        else:
-            rotation = 2
-    elif sheet_x != shape_x and sheet_y != shape_y:
-        rotation = 2
-    elif sheet_x == sheet_y:
-        if sheet_x != shape_x:
-            rotation = 3
-        elif sheet_y != shape_y:
-            rotation = 1
-    elif sheet_x != sheet_y:
-        if sheet_x != shape_x:
-            rotation = 1
-        elif sheet_y != shape_y:
-            rotation = 3
+            raise TypeError('Unknown point type.')
 
-    if sheet_orientation == -1 and rotation in (1, 3):
-        rotation += 2
-        rotation %= 4
-
-    return rotation * 90
+        return left, top, right, bottom
+    raise ValueError('Empty points list.')

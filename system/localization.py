@@ -77,7 +77,6 @@ class Locale:
         self.cut_sprites_process = None
         self.place_sprites_process = None
         self.not_implemented = None
-        self.want_exit = None
         self.dec_sc = None
         self.error = None
 

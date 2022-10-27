@@ -29,28 +29,27 @@ def sc1_decode():
                 logger.error(locale.not_found % (base_name + '_tex.sc'))
                 continue
 
-            current_sub_path = os.path.basename(swf.filename).rsplit('.', 1)[0]
-            if os.path.isdir(f'{output_folder}/{current_sub_path}'):
-                shutil.rmtree(f'{output_folder}/{current_sub_path}')
-            os.mkdir(f'{output_folder}/{current_sub_path}')
-            os.makedirs(f"{output_folder}/{current_sub_path}/textures", exist_ok=True)
-            base_name = os.path.basename(file).rsplit('.', 1)[0]
+            base_name = os.path.basename(swf.filename).rsplit('.', 1)[0]
+            if os.path.isdir(f'{output_folder}/{base_name}'):
+                shutil.rmtree(f'{output_folder}/{base_name}')
+            os.mkdir(f'{output_folder}/{base_name}')
+            os.makedirs(f"{output_folder}/{base_name}/textures", exist_ok=True)
 
-            with open(f'{output_folder}/{current_sub_path}/{base_name}.xcod', 'wb') as xcod_file:
+            with open(f'{output_folder}/{base_name}/{base_name}.xcod', 'wb') as xcod_file:
                 xcod_file.write(b'XCOD' + bool.to_bytes(use_lzham, 1, 'big') +
                                 int.to_bytes(len(swf.textures), 1, 'big'))
 
                 for img_index in range(len(swf.textures)):
                     filename = base_name + '_' * img_index
                     swf.textures[img_index].image.save(
-                        f'{output_folder}/{current_sub_path}/textures/{filename}.png'
+                        f'{output_folder}/{base_name}/textures/{filename}.png'
                     )
 
                 logger.info(locale.dec_sc)
 
                 cut_sprites(
                     swf,
-                    f'{output_folder}/{current_sub_path}'
+                    f'{output_folder}/{base_name}'
                 )
                 xcod_file.write(swf.xcod_writer.getvalue())
         except Exception as exception:

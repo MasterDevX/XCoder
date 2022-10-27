@@ -3,6 +3,8 @@ import os
 
 
 class Config:
+    DEFAULT_LANGUAGE = 'en-EU'
+
     config_path = './system/config.json'
     inited: bool
 
@@ -18,7 +20,7 @@ class Config:
 
         self.initialized: bool = False
         self.version = None
-        self.language: str = 'en-EU'
+        self.language: str = Config.DEFAULT_LANGUAGE
         self.has_update: bool = False
         self.last_update: int = -1
         self.auto_update: bool = False
