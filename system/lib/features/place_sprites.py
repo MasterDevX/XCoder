@@ -24,17 +24,17 @@ def place_sprites(xcod_path: str, folder: str, overwrite: bool = False) -> (list
             Image.new(get_format_by_pixel_type(sheet_info.pixel_type), sheet_info.size)
         )
 
-    shapes_count = xcod.read_uint16()
+    shapes_count = xcod.read_ushort()
     for shape_index in range(shapes_count):
         Console.progress_bar(locale.place_sprites_process % (shape_index + 1, shapes_count), shape_index, shapes_count)
-        shape_id = xcod.read_uint16()
+        shape_id = xcod.read_ushort()
 
-        regions_count = xcod.read_uint16()
+        regions_count = xcod.read_ushort()
         for region_index in range(regions_count):
-            texture_id, points_count = xcod.read_ubyte(), xcod.read_ubyte()
+            texture_id, points_count = xcod.read_uchar(), xcod.read_uchar()
             texture_width, texture_height = sheets[texture_id].width, sheets[texture_id].height
-            polygon = [(xcod.read_uint16(), xcod.read_uint16()) for _ in range(points_count)]
-            mirroring, rotation = xcod.read_ubyte() == 1, xcod.read_byte() * 90
+            polygon = [(xcod.read_ushort(), xcod.read_ushort()) for _ in range(points_count)]
+            mirroring, rotation = xcod.read_uchar() == 1, xcod.read_char() * 90
 
             filename = f'shape_{shape_id}_{region_index}.png'
             if filename not in files_to_overwrite:

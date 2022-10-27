@@ -8,7 +8,7 @@ from system.lib.swf import SupercellSWF
 from system.localization import locale
 
 
-def sc1_decode():
+def decode_and_cut():
     input_folder = './SC/In-Compressed'
     output_folder = './SC/Out-Sprites'
     files = os.listdir(input_folder)

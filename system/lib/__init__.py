@@ -14,13 +14,13 @@ from loguru import logger
 
 logger.remove()
 logger.add(
-    './logs/info/{time:YYYY-DD-MM}.log',
+    './logs/info/{time:YYYY-MM-DD}.log',
     format='[{time:HH:mm:ss}] [{level}]: {message}',
     encoding="utf8",
     level='INFO'
 )
 logger.add(
-    './logs/errors/{time:YYYY-DD-MM}.log',
+    './logs/errors/{time:YYYY-MM-DD}.log',
     format='[{time:HH:mm:ss}] [{level}]: {message}',
     backtrace=True,
     diagnose=True,
@@ -34,6 +34,7 @@ locale.load(config.language)
 
 
 try:
+    # noinspection PyUnresolvedReferences
     import requests
     del requests
 
@@ -58,6 +59,7 @@ except ImportError:
     pass
 
 
+# noinspection PyUnresolvedReferences
 @logger.catch()
 def refill_menu():
     menu.categories.clear()
@@ -73,10 +75,10 @@ def refill_menu():
             import PIL
             del PIL
 
-            from system.lib.features.sc.assembly_encode import sc1_encode
             from system.lib.features.sc.decode import sc_decode
-            from system.lib.features.sc.decode_and_cut import sc1_decode
-            from system.lib.features.sc.sc_encode import sc_encode
+            from system.lib.features.sc.encode import sc_encode
+            from system.lib.features.sc.decode_and_cut import decode_and_cut
+            from system.lib.features.sc.assembly_encode import sc1_encode
 
             sc_category = Menu.Category(0, locale.sc_label)
             sc_category.add(Menu.Item(
@@ -92,7 +94,7 @@ def refill_menu():
             sc_category.add(Menu.Item(
                 locale.decode_by_parts,
                 locale.decode_by_parts_description,
-                sc1_decode
+                decode_and_cut
             ))
             sc_category.add(Menu.Item(
                 locale.encode_by_parts,

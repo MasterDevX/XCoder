@@ -8,21 +8,54 @@ from system.localization import locale
 def cut_sprites(swf: SupercellSWF, export_folder: str):
     os.makedirs(f'{export_folder}/overwrite', exist_ok=True)
     os.makedirs(f'{export_folder}/shapes', exist_ok=True)
+    os.makedirs(f'{export_folder}/movie_clips', exist_ok=True)
+
+    # TODO: Too slow, fix it
+    # movie_clips_skipped = 0
+    # movie_clip_count = len(swf.movie_clips)
+    # for movie_clip_index in range(movie_clip_count):
+    #     movie_clip = swf.movie_clips[movie_clip_index]
+    #
+    #     rendered_movie_clip = movie_clip.render(swf)
+    #     if sum(rendered_movie_clip.size) >= 2:
+    #         rendered_movie_clip.save(f'{export_folder}/movie_clips/{movie_clip.export_name or movie_clip.id}.png')
+    #     else:
+    #         # For debug:
+    #         # logger.warning(f'MovieClip {movie_clip.id} cannot be rendered.')
+    #         movie_clips_skipped += 1
+    #
+    #     Console.progress_bar(
+    #         'Rendering movie clips (%d/%d). Skipped count: %d' %
+    #         (movie_clip_index + 1, movie_clip_count, movie_clips_skipped),
+    #         movie_clip_index,
+    #         movie_clip_count
+    #     )
 
     shapes_count = len(swf.shapes)
     swf.xcod_writer.write_uint16(shapes_count)
 
     for shape_index in range(shapes_count):
+        shape = swf.shapes[shape_index]
+
         Console.progress_bar(
             locale.cut_sprites_process % (shape_index + 1, shapes_count),
             shape_index,
             shapes_count
         )
 
-        shape = swf.shapes[shape_index]
-
-        rendered_shape = shape.render(swf)
+        rendered_shape = shape.render()
         rendered_shape.save(f'{export_folder}/shapes/{shape.id}.png')
+
+        regions_count = len(shape.regions)
+        for region_index in range(regions_count):
+            region = shape.regions[region_index]
+
+            region.apply_matrix(None)
+            rendered_region = region.render()
+            rendered_region.save(f'{export_folder}/shape_{shape.id}_{region_index}.png')
+
+    for shape_index in range(shapes_count):
+        shape = swf.shapes[shape_index]
 
         regions_count = len(shape.regions)
         swf.xcod_writer.write_uint16(shape.id)
@@ -38,6 +71,3 @@ def cut_sprites(swf: SupercellSWF, export_folder: str):
                 swf.xcod_writer.write_uint16(int(region.get_v(i)))
             swf.xcod_writer.write_ubyte(1 if region.is_mirrored else 0)
             swf.xcod_writer.write_byte(region.rotation // 90)
-
-            rendered_region = region.render(swf)
-            rendered_region.save(f'{export_folder}/shape_{shape.id}_{region_index}.png')

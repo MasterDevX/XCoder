@@ -15,8 +15,8 @@ class SWFTexture:
         self.image = None
 
     def load(self, swf, tag: int, has_texture: bool):
-        self.pixel_type = swf.reader.read_byte()
-        self.width, self.height = (swf.reader.read_uint16(), swf.reader.read_uint16())
+        self.pixel_type = swf.reader.read_char()
+        self.width, self.height = (swf.reader.read_ushort(), swf.reader.read_ushort())
 
         if has_texture:
             img = Image.new(get_format_by_pixel_type(self.pixel_type), (self.width, self.height))

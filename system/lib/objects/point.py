@@ -4,7 +4,9 @@ class Point:
         self.y: float = y
         
     def __eq__(self, other):
-        return self.x == other.x and self.y == other.y
+        if isinstance(other, Point):
+            return self.x == other.x and self.y == other.y
+        return False
 
     def __add__(self, other):
         if isinstance(other, Point):

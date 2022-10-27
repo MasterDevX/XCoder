@@ -33,16 +33,16 @@ def parse_info(xcod_path: str) -> (FileInfo, Reader):
     if magic != b'XCOD':
         raise IOError('Unknown file MAGIC: ' + magic.hex())
 
-    use_lzham = xcod.read_ubyte()
+    use_lzham = xcod.read_uchar() == 1
 
     file_info = FileInfo(use_lzham, [])
 
-    sheets_count = xcod.read_ubyte()
+    sheets_count = xcod.read_uchar()
     for i in range(sheets_count):
-        file_type = xcod.read_ubyte()
-        pixel_type = xcod.read_ubyte()
-        width = xcod.read_uint16()
-        height = xcod.read_uint16()
+        file_type = xcod.read_uchar()
+        pixel_type = xcod.read_uchar()
+        width = xcod.read_ushort()
+        height = xcod.read_ushort()
 
         file_info.sheets.append(SheetInfo(file_type, pixel_type, (width, height)))
 

@@ -1,7 +1,15 @@
-/SC/
-/CSV/
-/updates/
+# IDE project files
 /.idea/
+/*.iml
+
+# Script folders
+/updates/
 /logs/
+/CSV/
+/SC/
+
+# Configuration files
 system/config.json
+
+# Python compiled files
 *.pyc

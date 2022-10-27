@@ -108,31 +108,31 @@ def load_texture(data: Reader, _type, img):
     channels_count = 4
     if _type in (0, 1):
         def read_pixel():
-            return data.read_ubyte(), data.read_ubyte(), data.read_ubyte(), data.read_ubyte()
+            return data.read_uchar(), data.read_uchar(), data.read_uchar(), data.read_uchar()
     elif _type == 2:
         def read_pixel():
-            p = data.read_uint16()
+            p = data.read_ushort()
             return (p >> 12 & 15) << 4, (p >> 8 & 15) << 4, (p >> 4 & 15) << 4, (p >> 0 & 15) << 4
     elif _type == 3:
         def read_pixel():
-            p = data.read_uint16()
+            p = data.read_ushort()
             return (p >> 11 & 31) << 3, (p >> 6 & 31) << 3, (p >> 1 & 31) << 3, (p & 255) << 7
     elif _type == 4:
         channels_count = 3
 
         def read_pixel():
-            p = data.read_uint16()
+            p = data.read_ushort()
             return (p >> 11 & 31) << 3, (p >> 5 & 63) << 2, (p & 31) << 3
     elif _type == 6:
         channels_count = 2
 
         def read_pixel():
-            return (data.read_ubyte(), data.read_ubyte())[::-1]
+            return (data.read_uchar(), data.read_uchar())[::-1]
     elif _type == 10:
         channels_count = 1
 
         def read_pixel():
-            return data.read_ubyte()
+            return data.read_uchar()
 
     if read_pixel is None:
         return

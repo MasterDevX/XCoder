@@ -1,13 +1,17 @@
 import os
+from typing import List
 
 from loguru import logger
 
 from system.bytestream import Writer, Reader
 from system.lib.features.files import open_sc
-from system.lib.objects.movieclip import MovieClip
-from system.lib.objects.shape import Shape
-from system.lib.objects.texture import SWFTexture
+
+from system.lib.matrices.matrix_bank import MatrixBank
+from system.lib.objects import Shape, MovieClip, SWFTexture
 from system.localization import locale
+
+DEFAULT_HIGHRES_SUFFIX = '_highres'
+DEFAULT_LOWRES_SUFFIX = '_lowres'
 
 
 class SupercellSWF:
@@ -18,38 +22,38 @@ class SupercellSWF:
     TEXTURE_EXTENSION = '_tex.sc'
 
     def __init__(self):
-        self.filepath = None
-        self.filename = None
-        self.reader = None
+        self.filename: str or None = None
+        self.reader: Reader or None = None
 
-        self.use_lowres_texture = False
-        self.use_uncommon_texture = False
-        self.uncommon_texture_path = None
+        self.use_lowres_texture: bool = False
+        self.use_uncommon_texture: bool = False
+        self.uncommon_texture_path: str or None = None
 
-        self.lowres_suffix = '_lowres'
-        self.highres_suffix = '_highres'
-
-        self.shape_count = 0
-        self.movie_clips_count = 0
-        self.textures_count = 0
-        self.text_field_count = 0
-        self.matrix_count = 0
-        self.color_transformation_count = 0
-
-        self.export_count = 0
-
-        self.exports = {}
-
-        self.shapes = []
-        self.movie_clips = []
-        self.textures = []
-
-        self.matrices = []
+        self.shapes: List[Shape] = []
+        self.movie_clips: List[MovieClip] = []
+        self.textures: List[SWFTexture] = []
 
         self.xcod_writer = Writer('big')
 
+        self._filepath: str or None = None
+
+        self._lowres_suffix: str = DEFAULT_LOWRES_SUFFIX
+        self._highres_suffix: str = DEFAULT_HIGHRES_SUFFIX
+
+        self._shape_count: int
+        self._movie_clip_count: int
+        self._texture_count: int
+        self._text_field_count: int
+
+        self._export_count: int
+        self._export_ids: List[int] = []
+        self._export_names: List[str] = []
+
+        self._matrix_banks: List[MatrixBank] = []
+        self._matrix_bank: MatrixBank
+
     def load(self, filepath: str) -> (bool, bool):
-        self.filepath = filepath
+        self._filepath = filepath
 
         texture_loaded, use_lzham = self._load_internal(filepath, filepath.endswith('_tex.sc'))
 
@@ -57,7 +61,7 @@ class SupercellSWF:
             if self.use_uncommon_texture:
                 texture_loaded, use_lzham = self._load_internal(self.uncommon_texture_path, True)
             else:
-                texture_path = self.filepath[:-3] + SupercellSWF.TEXTURE_EXTENSION
+                texture_path = self._filepath[:-3] + SupercellSWF.TEXTURE_EXTENSION
                 texture_loaded, use_lzham = self._load_internal(texture_path, True)
 
         return texture_loaded, use_lzham
@@ -70,26 +74,43 @@ class SupercellSWF:
         del decompressed_data
 
         if not is_texture:
-            self.shape_count = self.reader.read_uint16()
-            self.movie_clips_count = self.reader.read_uint16()
-            self.textures_count = self.reader.read_uint16()
-            self.text_field_count = self.reader.read_uint16()
-            self.matrix_count = self.reader.read_uint16()
-            self.color_transformation_count = self.reader.read_uint16()
+            self._shape_count = self.reader.read_ushort()
+            self._movie_clip_count = self.reader.read_ushort()
+            self._texture_count = self.reader.read_ushort()
+            self._text_field_count = self.reader.read_ushort()
 
-            self.shapes = [_class() for _class in [Shape] * self.shape_count]
-            self.movie_clips = [_class() for _class in [MovieClip] * self.movie_clips_count]
-            self.textures = [_class() for _class in [SWFTexture] * self.textures_count]
+            matrix_count = self.reader.read_ushort()
+            color_transformation_count = self.reader.read_ushort()
 
-            self.reader.read_uint32()
-            self.reader.read_byte()
+            self._matrix_bank = MatrixBank()
+            self._matrix_bank.init(matrix_count, color_transformation_count)
+            self._matrix_banks.append(self._matrix_bank)
 
-            self.export_count = self.reader.read_uint16()
+            self.shapes = [_class() for _class in [Shape] * self._shape_count]
+            self.movie_clips = [_class() for _class in [MovieClip] * self._movie_clip_count]
+            self.textures = [_class() for _class in [SWFTexture] * self._texture_count]
 
-            self.exports = [_function() for _function in [self.reader.read_uint16] * self.export_count]
-            self.exports = {export_id: self.reader.read_string() for export_id in self.exports}
+            self.reader.read_uint()
+            self.reader.read_char()
+
+            self._export_count = self.reader.read_ushort()
+
+            self._export_ids = []
+            for _ in range(self._export_count):
+                self._export_ids.append(self.reader.read_ushort())
+
+            self._export_names = []
+            for _ in range(self._export_count):
+                self._export_names.append(self.reader.read_string())
 
         loaded = self._load_tags()
+
+        for i in range(self._export_count):
+            export_id = self._export_ids[i]
+            export_name = self._export_names[i]
+
+            movie_clip = self.get_display_object(export_id, export_name, raise_error=True)
+            movie_clip.export_name = export_name
 
         print()
         return loaded, use_lzham
@@ -100,10 +121,11 @@ class SupercellSWF:
         texture_id = 0
         movie_clips_loaded = 0
         shapes_loaded = 0
+        matrices_loaded = 0
 
         while True:
-            tag = self.reader.read_byte()
-            length = self.reader.read_uint32()
+            tag = self.reader.read_char()
+            length = self.reader.read_uint()
 
             if tag == 0:
                 return has_texture
@@ -133,31 +155,48 @@ class SupercellSWF:
             elif tag in SupercellSWF.MOVIE_CLIPS_TAGS:  # MovieClip
                 self.movie_clips[movie_clips_loaded].load(self, tag)
                 movie_clips_loaded += 1
-            elif tag == 8:  # Matrix
-                scale_x = self.reader.read_int32() / 1024
-                rotation_x = self.reader.read_int32() / 1024
-                rotation_y = self.reader.read_int32() / 1024
-                scale_y = self.reader.read_int32() / 1024
-                x = self.reader.read_int32() / 20
-                y = self.reader.read_int32() / 20
-
-                self.matrices.append([
-                    scale_x, rotation_x, x,
-                    rotation_y, scale_y, y
-                ])
+            elif tag == 8 or tag == 36:  # Matrix
+                self._matrix_bank.get_matrix(matrices_loaded).load(self.reader, tag)
+                matrices_loaded += 1
             elif tag == 26:
                 has_texture = False
             elif tag == 30:
                 self.use_uncommon_texture = True
-                highres_texture_path = self.filepath[:-3] + self.highres_suffix + SupercellSWF.TEXTURE_EXTENSION
-                lowres_texture_path = self.filepath[:-3] + self.lowres_suffix + SupercellSWF.TEXTURE_EXTENSION
+                highres_texture_path = self._filepath[:-3] + self._highres_suffix + SupercellSWF.TEXTURE_EXTENSION
+                lowres_texture_path = self._filepath[:-3] + self._lowres_suffix + SupercellSWF.TEXTURE_EXTENSION
 
                 self.uncommon_texture_path = highres_texture_path
                 if not os.path.exists(highres_texture_path) and os.path.exists(lowres_texture_path):
                     self.uncommon_texture_path = lowres_texture_path
                     self.use_lowres_texture = True
+            elif tag == 42:
+                matrix_count = self.reader.read_ushort()
+                color_transformation_count = self.reader.read_ushort()
+
+                self._matrix_bank = MatrixBank()
+                self._matrix_bank.init(matrix_count, color_transformation_count)
+                self._matrix_banks.append(self._matrix_bank)
+
+                matrices_loaded = 0
             else:
                 self.reader.read(length)
 
-    def get_export_by_id(self, movie_clip):
-        return self.exports.get(movie_clip, '_movieclip_%s' % movie_clip)
+    def get_display_object(self, target_id: int, name: str or None = None, *, raise_error: bool = False):
+        for shape in self.shapes:
+            if shape.id == target_id:
+                return shape
+
+        for movie_clip in self.movie_clips:
+            if movie_clip.id == target_id:
+                return movie_clip
+
+        if raise_error:
+            exception_text = f'Unable to find some DisplayObject id {target_id}, {self.filename}'
+            if name is not None:
+                exception_text += f' needed by export name {name}'
+
+            raise ValueError(exception_text)
+        return None
+
+    def get_matrix_bank(self, index: int) -> MatrixBank:
+        return self._matrix_banks[index]

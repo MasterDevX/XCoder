@@ -3,24 +3,26 @@ from typing import List, Tuple
 
 from PIL import Image, ImageDraw
 
+from system.lib.helper import get_sides, get_size
+from system.lib.matrices.matrix2x3 import Matrix2x3
 from system.lib.objects.point import Point
 
 
 class Shape:
     def __init__(self):
         self.id = 0
-        self.regions = []
+        self.regions: List[Region] = []
 
     def load(self, swf, tag: int):
-        self.id = swf.reader.read_uint16()
+        self.id = swf.reader.read_ushort()
 
-        swf.reader.read_uint16()  # regions_count
+        swf.reader.read_ushort()  # regions_count
         if tag == 18:
-            swf.reader.read_uint16()  # point_count
+            swf.reader.read_ushort()  # point_count
 
         while True:
-            region_tag = swf.reader.read_byte()
-            region_length = swf.reader.read_uint32()
+            region_tag = swf.reader.read_char()
+            region_length = swf.reader.read_uint()
 
             if region_tag == 0:
                 return
@@ -31,44 +33,55 @@ class Shape:
             else:
                 swf.reader.read(region_length)
 
-    def render(self, swf, matrix=None):
-        if matrix is not None:
-            for region in self.regions:
-                region.transformed_points = []
-                for index in range(region.get_points_count()):
-                    region.transformed_points.append(Point(
-                        region.get_x(index) * matrix[0] + region.get_y(index) * matrix[3] + matrix[2],
-                        region.get_x(index) * matrix[1] + region.get_y(index) * matrix[4] + matrix[5]
-                    ))
-
-        shape_left = 0
-        shape_top = 0
-        shape_right = 0
-        shape_bottom = 0
+    def render(self, matrix=None):
         for region in self.regions:
-            shape_left = min(shape_left, min(point.x for point in region.transformed_points))
-            shape_right = max(shape_right, max(point.x for point in region.transformed_points))
-            shape_top = min(shape_top, min(point.y for point in region.transformed_points))
-            shape_bottom = max(shape_bottom, max(point.y for point in region.transformed_points))
+            region.apply_matrix(matrix)
 
-        width, height = shape_right - shape_left, shape_bottom - shape_top
+        shape_left, shape_top, shape_right, shape_bottom = self.get_sides()
+
+        width, height = get_size(shape_left, shape_top, shape_right, shape_bottom)
         size = ceil(width), ceil(height)
 
         image = Image.new('RGBA', size)
 
-        region: Region
         for region in self.regions:
-            rendered_region = region.render(swf)
+            rendered_region = region.render()
 
-            left = min(point.x for point in region.transformed_points)
-            top = min(point.y for point in region.transformed_points)
+            region_left, region_top = region.get_position()
 
-            x = int(left + abs(shape_left))
-            y = int(top + abs(shape_top))
+            x = int(abs(shape_left) + region_left)
+            y = int(abs(shape_top) + region_top)
 
             image.paste(rendered_region, (x, y), rendered_region)
 
         return image
+
+    def apply_matrix(self, matrix: Matrix2x3 = None) -> None:
+        """Calls apply_matrix method for all regions.
+
+        :param matrix: Affine matrix
+        """
+
+        for region in self.regions:
+            region.apply_matrix(matrix)
+
+    def get_position(self) -> Tuple[float, float]:
+        left, top, _, _ = self.get_sides()
+        return left, top
+
+    def get_sides(self) -> Tuple[float, float, float, float]:
+        left = 0
+        top = 0
+        right = 0
+        bottom = 0
+        for region in self.regions:
+            region_left, region_top, region_right, region_bottom = region.get_sides()
+            left = min(left, region_left)
+            right = max(right, region_right)
+            top = min(top, region_top)
+            bottom = max(bottom, region_bottom)
+
+        return left, top, right, bottom
 
 
 class Region:
@@ -76,35 +89,34 @@ class Region:
         self.texture_index = 0
         self.rotation = 0
         self.is_mirrored = 0
-        self.transformed_points = []
 
         self._points_count = 0
         self._xy_points = []
         self._uv_points = []
+        self._transformed_points: List[Point] or None = None
 
         self.texture = None
 
     def load(self, swf, tag: int):
-        self.texture_index = swf.reader.read_ubyte()
+        self.texture_index = swf.reader.read_uchar()
 
         self.texture = swf.textures[self.texture_index]
 
         self._points_count = 4
         if tag != 4:
-            self._points_count = swf.reader.read_ubyte()
+            self._points_count = swf.reader.read_uchar()
 
         self._xy_points = [_class() for _class in [Point] * self._points_count]
-        self.transformed_points = self._xy_points
         self._uv_points = [_class() for _class in [Point] * self._points_count]
 
         multiplier = 0.5 if swf.use_lowres_texture else 1
 
         for i in range(self._points_count):
-            self._xy_points[i].x = swf.reader.read_int32() / 20
-            self._xy_points[i].y = swf.reader.read_int32() / 20
+            self._xy_points[i].x = swf.reader.read_int() / 20
+            self._xy_points[i].y = swf.reader.read_int() / 20
         for i in range(self._points_count):
-            u, v = (swf.reader.read_uint16() * swf.textures[self.texture_index].width / 0xffff * multiplier,
-                    swf.reader.read_uint16() * swf.textures[self.texture_index].height / 0xffff * multiplier)
+            u, v = (swf.reader.read_ushort() * swf.textures[self.texture_index].width / 0xffff * multiplier,
+                    swf.reader.read_ushort() * swf.textures[self.texture_index].height / 0xffff * multiplier)
             u_rounded, v_rounded = map(ceil, (u, v))
             if int(u) == u_rounded:
                 u_rounded += 1
@@ -113,8 +125,10 @@ class Region:
 
             self._uv_points[i].position = (u_rounded, v_rounded)
 
-    def render(self, swf):
-        width, height = get_size(*get_sides(self.transformed_points))
+    def render(self):
+        self._transformed_points = self._xy_points
+
+        width, height = get_size(*self.get_sides())
         width, height = max(width, 1), max(height, 1)
 
         self.rotation, self.is_mirrored = self.calculate_rotation(True)
@@ -167,17 +181,40 @@ class Region:
     def get_x(self, index: int):
         return self._xy_points[index].x
 
+    def get_position(self) -> Tuple[float, float]:
+        left, top, _, _ = get_sides(self._transformed_points)
+        return left, top
+
+    def get_sides(self) -> Tuple[float, float, float, float]:
+        return get_sides(self._transformed_points)
+
     def get_y(self, index: int):
         return self._xy_points[index].y
 
-    def calculate_rotation(self, round_to_nearest: bool = False) -> (int, bool):
+    def apply_matrix(self, matrix: Matrix2x3 = None) -> None:
+        """Applies affine matrix to shape (xy) points. If matrix is none, copies the points.
+
+        :param matrix: Affine matrix
+        """
+
+        self._transformed_points = self._xy_points
+        if matrix is not None:
+            self._transformed_points = []
+            for point in self._xy_points:
+                self._transformed_points.append(Point(
+                    matrix.apply_x(point.x, point.y),
+                    matrix.apply_y(point.x, point.y)
+                ))
+
+    def calculate_rotation(self, round_to_nearest: bool = False, custom_points: List[Point] = None) -> (int, bool):
         """Calculates rotation and if region is mirrored.
 
         :param round_to_nearest: should round to a multiple of 90
+        :param custom_points: transformed points, replacement of self._xy_points
         :return: rotation angle, is mirroring
         """
 
-        def is_clockwise(points):
+        def is_clockwise(points: List[Point]):
             points_sum = 0
             for i in range(len(points)):
                 x1, y1 = points[(i + 1) % len(points)].position
@@ -185,13 +222,17 @@ class Region:
                 points_sum += (x1 - x2) * (y1 + y2)
             return points_sum > 0
 
+        xy_points = self._xy_points
+        if custom_points is not None:
+            xy_points = custom_points
+
         is_uv_clockwise = is_clockwise(self._uv_points)
-        is_xy_clockwise = is_clockwise(self._xy_points)
+        is_xy_clockwise = is_clockwise(xy_points)
 
         mirroring = not (is_uv_clockwise == is_xy_clockwise)
 
-        dx = self._xy_points[1].x - self._xy_points[0].x
-        dy = self._xy_points[1].y - self._xy_points[0].y
+        dx = xy_points[1].x - xy_points[0].x
+        dy = xy_points[1].y - xy_points[0].y
         du = self._uv_points[1].x - self._uv_points[0].x
         dv = self._uv_points[1].y - self._uv_points[0].y
 
@@ -209,40 +250,3 @@ class Region:
             angle = round(angle / 90) * 90
 
         return angle, mirroring
-
-
-def get_size(left: float, top: float, right: float, bottom: float) -> (int, int):
-    """Returns width and height of given rect.
-
-    :param left:
-    :param top:
-    :param right:
-    :param bottom:
-    :return: width, height
-    """
-    return int(right - left), int(bottom - top)
-
-
-def get_sides(points: List[Tuple[float, float]] or List[Point]) -> (float, float, float, float):
-    """Calculates and returns rect sides.
-
-    :param points: polygon points
-    :return: left, top, right, bottom
-    """
-    if len(points) > 0:
-        point = points[0]
-        if type(point) is Point:
-            left = min(point.x for point in points)
-            top = min(point.y for point in points)
-            right = max(point.x for point in points)
-            bottom = max(point.y for point in points)
-        elif type(point) is tuple:
-            left = min(x for x, _ in points)
-            top = min(y for _, y in points)
-            right = max(x for x, _ in points)
-            bottom = max(y for _, y in points)
-        else:
-            raise TypeError('Unknown point type.')
-
-        return left, top, right, bottom
-    raise ValueError('Empty points list.')
