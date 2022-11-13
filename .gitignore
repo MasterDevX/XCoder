@@ -1,6 +1,6 @@
 # IDE project files
 /.idea/
-/*.iml
+/venv/
 
 # Script folders
 /updates/

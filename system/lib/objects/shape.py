@@ -91,8 +91,8 @@ class Region:
         self.is_mirrored = 0
 
         self._points_count = 0
-        self._xy_points = []
-        self._uv_points = []
+        self._xy_points: List[Point] = []
+        self._uv_points: List[Point] = []
         self._transformed_points: List[Point] or None = None
 
         self.texture = None
@@ -128,19 +128,32 @@ class Region:
     def render(self):
         self._transformed_points = self._xy_points
 
-        width, height = get_size(*self.get_sides())
+        left, top, right, bottom = self.get_sides()
+        width, height = get_size(left, top, right, bottom)
         width, height = max(width, 1), max(height, 1)
 
         self.rotation, self.is_mirrored = self.calculate_rotation(True)
 
         rendered_region = self.get_image()
+        if sum(rendered_region.size) == 2:
+            fill_color = rendered_region.getpixel((0, 0))
+
+            # noinspection PyTypeChecker
+            rendered_polygon = Image.new(rendered_region.mode, (width, height))
+            drawable_image = ImageDraw.Draw(rendered_polygon)
+            drawable_image.polygon(
+                [(point.x - left, point.y - top) for point in self._transformed_points],
+                fill=fill_color
+            )
+            return rendered_polygon
+
         rendered_region = rendered_region.rotate(-self.rotation, expand=True)
         if self.is_mirrored:
             rendered_region = rendered_region.transpose(Image.FLIP_LEFT_RIGHT)
         rendered_region = rendered_region.resize((width, height), Image.ANTIALIAS)
         return rendered_region
 
-    def get_image(self):
+    def get_image(self) -> Image:
         img_mask = Image.new('L', (self.texture.width, self.texture.height), 0)
 
         color = 255
