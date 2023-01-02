@@ -154,14 +154,11 @@ class Region:
         return rendered_region
 
     def get_image(self) -> Image:
-        img_mask = Image.new('L', (self.texture.width, self.texture.height), 0)
-
-        color = 255
-        ImageDraw.Draw(img_mask).polygon([point.position for point in self._uv_points], fill=color)
-
         left, top, right, bottom = get_sides(self._uv_points)
         width, height = get_size(left, top, right, bottom)
         width, height = max(width, 1), max(height, 1)
+        if width + height == 1:  # The same speed as without this return
+            return Image.new('RGBA', (width, height), color=self.texture.image.get_pixel(left, top))
 
         if width == 1:
             right += 1
@@ -170,6 +167,10 @@ class Region:
             bottom += 1
 
         bbox = left, top, right, bottom
+
+        color = 255
+        img_mask = Image.new('L', (self.texture.width, self.texture.height), 0)
+        ImageDraw.Draw(img_mask).polygon([point.position for point in self._uv_points], fill=color)
 
         rendered_region = Image.new('RGBA', (width, height))
         rendered_region.paste(self.texture.image.crop(bbox), (0, 0), img_mask.crop(bbox))
@@ -194,15 +195,15 @@ class Region:
     def get_x(self, index: int):
         return self._xy_points[index].x
 
+    def get_y(self, index: int):
+        return self._xy_points[index].y
+
     def get_position(self) -> Tuple[float, float]:
         left, top, _, _ = get_sides(self._transformed_points)
         return left, top
 
     def get_sides(self) -> Tuple[float, float, float, float]:
         return get_sides(self._transformed_points)
-
-    def get_y(self, index: int):
-        return self._xy_points[index].y
 
     def apply_matrix(self, matrix: Matrix2x3 = None) -> None:
         """Applies affine matrix to shape (xy) points. If matrix is none, copies the points.
