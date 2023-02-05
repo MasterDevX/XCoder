@@ -1,5 +1,4 @@
 sc-compression
-requests
 colorama
 pylzham
 zstandard

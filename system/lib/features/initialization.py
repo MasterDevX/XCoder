@@ -47,14 +47,7 @@ def initialize(first_init=False):
     logger.info(locale.verifying)
 
     config.initialized = True
-    try:
-        # noinspection PyUnresolvedReferences
-        import requests
-
-        del requests
-        config.version = get_tags("vorono4ka", "xcoder")[0]["name"][1:]
-    except ImportError as exception:
-        logger.exception(exception)
+    config.version = get_tags("vorono4ka", "xcoder")[0]["name"][1:]
     config.dump()
 
     if first_init:

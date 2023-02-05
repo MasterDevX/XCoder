@@ -1,3 +1,4 @@
+import json
 import os
 
 from loguru import logger
@@ -38,21 +39,20 @@ def get_pip_info(outdated: bool = False) -> list:
 
 def get_tags(owner: str, repo: str):
     api_url = "https://api.github.com"
-    tags = []
 
-    import requests
+    import urllib.request
 
-    try:
-        tags = requests.get(
+    tags = json.loads(
+        urllib.request.urlopen(
             api_url + "/repos/{owner}/{repo}/tags".format(owner=owner, repo=repo)
-        ).json()
-        tags = [
-            {key: v for key, v in tag.items() if key in ["name", "zipball_url"]}
-            for tag in tags
-        ]
-    except Exception:
-        pass
-    del requests
+        )
+        .read()
+        .decode()
+    )
+    tags = [
+        {key: v for key, v in tag.items() if key in ["name", "zipball_url"]}
+        for tag in tags
+    ]
 
     return tags
 

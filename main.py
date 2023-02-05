@@ -1,5 +1,4 @@
 # Refactored by Vorono4ka
-# Finished ~99%
 
 import time
 
@@ -9,7 +8,14 @@ except ImportError:
     raise RuntimeError("Please, install loguru using pip")
 
 from system import clear
-from system.lib import config, locale, refill_menu, menu
+from system.lib import (
+    config,
+    locale,
+    refill_menu,
+    menu,
+    check_auto_update,
+    check_files_updated,
+)
 from system.lib.features.initialization import initialize
 
 
@@ -20,6 +26,9 @@ def main():
     if not config.initialized:
         initialize(True)
         exit()
+
+    check_auto_update()
+    check_files_updated()
 
     refill_menu()
 
