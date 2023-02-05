@@ -1,17 +1,18 @@
 import os
+from typing import List, Tuple
 
 from PIL import Image, ImageDraw
 
 from system.lib import Console
 from system.lib.helper import get_sides, get_size
 from system.lib.images import get_format_by_pixel_type
-from system.lib.xcod import parse_info, FileInfo
+from system.lib.xcod import FileInfo, parse_info
 from system.localization import locale
 
 
 def place_sprites(
     xcod_path: str, folder: str, overwrite: bool = False
-) -> (list, FileInfo):
+) -> Tuple[List[Image.Image], FileInfo]:
     file_info, xcod = parse_info(xcod_path)
 
     files_to_overwrite = os.listdir(f'{folder}{"/overwrite" if overwrite else ""}')
@@ -83,7 +84,7 @@ def place_sprites(
 
             width, height = get_size(left, top, right, bottom)
 
-            bbox = left, top, right, bottom
+            bbox = int(left), int(top), int(right), int(bottom)
 
             tmp_region = Image.open(
                 f'{folder}{"/overwrite" if overwrite else ""}/{filename}'

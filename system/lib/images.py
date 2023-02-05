@@ -1,6 +1,7 @@
 import math
 import struct
 
+import PIL.PyAccess
 from PIL import Image
 
 from system.bytestream import Reader
@@ -10,9 +11,10 @@ from system.localization import locale
 CHUNK_SIZE = 32
 
 
-def load_image_from_buffer(img: Image) -> None:
+def load_image_from_buffer(img: Image.Image) -> None:
     width, height = img.size
-    img_loaded = img.load()
+    # noinspection PyTypeChecker
+    img_loaded: PIL.PyAccess.PyAccess = img.load()
 
     with open("pixel_buffer", "rb") as pixel_buffer:
         channels_count = int.from_bytes(pixel_buffer.read(1), "little")
@@ -22,12 +24,13 @@ def load_image_from_buffer(img: Image) -> None:
                 img_loaded[x, y] = tuple(pixel_buffer.read(channels_count))
 
 
-def join_image(img: Image) -> None:
+def join_image(img: Image.Image) -> None:
     with open("pixel_buffer", "rb") as pixel_buffer:
         channels_count = int.from_bytes(pixel_buffer.read(1), "little")
 
         width, height = img.size
-        loaded_img = img.load()
+        # noinspection PyTypeChecker
+        loaded_img: PIL.PyAccess.PyAccess = img.load()
 
         x_chunks_count = width // CHUNK_SIZE
         y_chunks_count = height // CHUNK_SIZE
@@ -51,13 +54,15 @@ def join_image(img: Image) -> None:
             Console.progress_bar(locale.join_pic, y_chunk, y_chunks_count + 1)
 
 
-def split_image(img: Image):
+def split_image(img: Image.Image):
     def add_pixel(pixel: tuple):
         loaded_image[pixel_index % width, int(pixel_index / width)] = pixel
 
     width, height = img.size
-    loaded_image = img.load()
-    loaded_clone = img.copy().load()
+    # noinspection PyTypeChecker
+    loaded_image: PIL.PyAccess.PyAccess = img.load()
+    # noinspection PyTypeChecker
+    loaded_clone: PIL.PyAccess.PyAccess = img.copy().load()
 
     x_chunks_count = width // CHUNK_SIZE
     y_chunks_count = height // CHUNK_SIZE
@@ -180,53 +185,54 @@ def load_texture(data: Reader, _type, img):
 
 
 def save_texture(sc, img, _type):
-    write_pixel = None
     if _type in (0, 1):
 
         def write_pixel(pixel):
             return struct.pack("4B", *pixel)
 
-    if _type == 2:
+    elif _type == 2:
 
         def write_pixel(pixel):
             r, g, b, a = pixel
             return struct.pack("<H", a >> 4 | b >> 4 << 4 | g >> 4 << 8 | r >> 4 << 12)
 
-    if _type == 3:
+    elif _type == 3:
 
         def write_pixel(pixel):
             r, g, b, a = pixel
             return struct.pack("<H", a >> 7 | b >> 3 << 1 | g >> 3 << 6 | r >> 3 << 11)
 
-    if _type == 4:
+    elif _type == 4:
 
         def write_pixel(pixel):
             r, g, b = pixel
             return struct.pack("<H", b >> 3 | g >> 2 << 5 | r >> 3 << 11)
 
-    if _type == 6:
+    elif _type == 6:
 
         def write_pixel(pixel):
             return struct.pack("2B", *pixel[::-1])
 
-    if _type == 10:
+    elif _type == 10:
 
         def write_pixel(pixel):
             return struct.pack("B", pixel)
 
-    if write_pixel is not None:
-        width, height = img.size
+    else:
+        return
 
-        pix = img.getdata()
-        point = -1
-        for y in range(height):
-            for x in range(width):
-                sc.write(write_pixel(pix[y * width + x]))
+    width, height = img.size
 
-            curr = Console.percent(y, height)
-            if curr > point:
-                Console.progress_bar(locale.writing_pic, y, height)
-                point = curr
+    pix = img.getdata()
+    point = -1
+    for y in range(height):
+        for x in range(width):
+            sc.write(write_pixel(pix[y * width + x]))
+
+        curr = Console.percent(y, height)
+        if curr > point:
+            Console.progress_bar(locale.writing_pic, y, height)
+            point = curr
 
 
 def transform_image(image, scale_x, scale_y, angle, x, y):

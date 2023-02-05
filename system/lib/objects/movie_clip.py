@@ -1,5 +1,5 @@
 from math import ceil
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from PIL import Image
 
@@ -12,7 +12,7 @@ from system.lib.objects.shape import Shape
 class MovieClipFrame:
     def __init__(self):
         self._elements_count: int = 0
-        self._label: str or None = None
+        self._label: Optional[str] = None
 
         self._elements: List[Tuple[int, int, int]] = []
 
@@ -29,7 +29,7 @@ class MovieClipFrame:
     def get_elements(self) -> List[Tuple[int, int, int]]:
         return self._elements
 
-    def get_element(self, index: int) -> (int, int, int):
+    def get_element(self, index: int) -> Tuple[int, int, int]:
         return self._elements[index]
 
 
@@ -38,7 +38,7 @@ class MovieClip:
         super().__init__()
 
         self.id = -1
-        self.export_name: str or None = None
+        self.export_name: Optional[str] = None
         self.fps: int = 30
         self.frames_count: int = 0
         self.frames: List[MovieClipFrame] = []
@@ -46,8 +46,6 @@ class MovieClip:
         self.blends: List[int] = []
         self.binds: List[int] = []
         self.matrix_bank_index: int = 0
-
-        self.points = []
 
     def load(self, swf, tag: int):
         self.id = swf.reader.read_ushort()
@@ -108,7 +106,7 @@ class MovieClip:
             else:
                 swf.reader.read(frame_length)
 
-    def render(self, swf, matrix=None) -> Image:
+    def render(self, swf, matrix=None) -> Image.Image:
         matrix_bank: MatrixBank = swf.get_matrix_bank(self.matrix_bank_index)
 
         # TODO: make it faster

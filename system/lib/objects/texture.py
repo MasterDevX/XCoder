@@ -4,9 +4,9 @@ from PIL import Image
 
 from system.lib.images import (
     get_format_by_pixel_type,
-    load_texture,
     join_image,
     load_image_from_buffer,
+    load_texture,
 )
 
 
@@ -17,7 +17,7 @@ class SWFTexture:
 
         self.pixel_type = -1
 
-        self.image = None
+        self.image: Image.Image
 
     def load(self, swf, tag: int, has_texture: bool):
         self.pixel_type = swf.reader.read_char()

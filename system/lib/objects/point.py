@@ -1,3 +1,6 @@
+from typing import Tuple
+
+
 class Point:
     def __init__(self, x: float = 0, y: float = 0):
         self.x: float = x
@@ -26,10 +29,10 @@ class Point:
         return str(self.position)
 
     @property
-    def position(self) -> (float, float):
+    def position(self) -> Tuple[float, float]:
         return self.x, self.y
 
     @position.setter
-    def position(self, value: (float, float)):
+    def position(self, value: Tuple[float, float]):
         self.x = value[0]
         self.y = value[1]

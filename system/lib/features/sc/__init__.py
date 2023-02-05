@@ -1,19 +1,23 @@
 import os
 import struct
+from typing import List, Optional
 
-from PIL import Image
 from loguru import logger
+from PIL import Image
 
 from system.bytestream import Writer
 from system.lib.console import Console
 from system.lib.features.files import write_sc
-from system.lib.images import get_pixel_size, split_image, save_texture
+from system.lib.images import get_pixel_size, save_texture, split_image
 from system.lib.xcod import FileInfo
 from system.localization import locale
 
 
 def compile_sc(
-    _dir, file_info: FileInfo, sheets: list = None, output_folder: str = None
+    _dir,
+    file_info: FileInfo,
+    sheets: Optional[List[Image.Image]] = None,
+    output_folder: Optional[str] = None,
 ):
     name = _dir.split("/")[-2]
 
