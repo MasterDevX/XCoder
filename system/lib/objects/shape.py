@@ -26,7 +26,7 @@ class Shape:
 
             if region_tag == 0:
                 return
-            elif region_tag in (4, 17, 22,):
+            elif region_tag in (4, 17, 22):
                 region = Region()
                 region.load(swf, region_tag)
                 self.regions.append(region)
@@ -42,7 +42,7 @@ class Shape:
         width, height = get_size(shape_left, shape_top, shape_right, shape_bottom)
         size = ceil(width), ceil(height)
 
-        image = Image.new('RGBA', size)
+        image = Image.new("RGBA", size)
 
         for region in self.regions:
             rendered_region = region.render()
@@ -115,8 +115,16 @@ class Region:
             self._xy_points[i].x = swf.reader.read_int() / 20
             self._xy_points[i].y = swf.reader.read_int() / 20
         for i in range(self._points_count):
-            u, v = (swf.reader.read_ushort() * swf.textures[self.texture_index].width / 0xffff * multiplier,
-                    swf.reader.read_ushort() * swf.textures[self.texture_index].height / 0xffff * multiplier)
+            u, v = (
+                swf.reader.read_ushort()
+                * swf.textures[self.texture_index].width
+                / 0xFFFF
+                * multiplier,
+                swf.reader.read_ushort()
+                * swf.textures[self.texture_index].height
+                / 0xFFFF
+                * multiplier,
+            )
             u_rounded, v_rounded = map(ceil, (u, v))
             if int(u) == u_rounded:
                 u_rounded += 1
@@ -143,7 +151,7 @@ class Region:
             drawable_image = ImageDraw.Draw(rendered_polygon)
             drawable_image.polygon(
                 [(point.x - left, point.y - top) for point in self._transformed_points],
-                fill=fill_color
+                fill=fill_color,
             )
             return rendered_polygon
 
@@ -159,7 +167,9 @@ class Region:
         width, height = get_size(left, top, right, bottom)
         width, height = max(width, 1), max(height, 1)
         if width + height == 1:  # The same speed as without this return
-            return Image.new('RGBA', (width, height), color=self.texture.image.get_pixel(left, top))
+            return Image.new(
+                "RGBA", (width, height), color=self.texture.image.get_pixel(left, top)
+            )
 
         if width == 1:
             right += 1
@@ -170,11 +180,15 @@ class Region:
         bbox = left, top, right, bottom
 
         color = 255
-        img_mask = Image.new('L', (self.texture.width, self.texture.height), 0)
-        ImageDraw.Draw(img_mask).polygon([point.position for point in self._uv_points], fill=color)
+        img_mask = Image.new("L", (self.texture.width, self.texture.height), 0)
+        ImageDraw.Draw(img_mask).polygon(
+            [point.position for point in self._uv_points], fill=color
+        )
 
-        rendered_region = Image.new('RGBA', (width, height))
-        rendered_region.paste(self.texture.image.crop(bbox), (0, 0), img_mask.crop(bbox))
+        rendered_region = Image.new("RGBA", (width, height))
+        rendered_region.paste(
+            self.texture.image.crop(bbox), (0, 0), img_mask.crop(bbox)
+        )
 
         return rendered_region
 
@@ -216,14 +230,16 @@ class Region:
         if matrix is not None:
             self._transformed_points = []
             for point in self._xy_points:
-                self._transformed_points.append(Point(
-                    matrix.apply_x(point.x, point.y),
-                    matrix.apply_y(point.x, point.y)
-                ))
+                self._transformed_points.append(
+                    Point(
+                        matrix.apply_x(point.x, point.y),
+                        matrix.apply_y(point.x, point.y),
+                    )
+                )
 
-    def calculate_rotation(self,
-                           round_to_nearest: bool = False,
-                           custom_points: List[Point] = None) -> (int, bool):
+    def calculate_rotation(
+        self, round_to_nearest: bool = False, custom_points: List[Point] = None
+    ) -> (int, bool):
         """Calculates rotation and if region is mirrored.
 
         :param round_to_nearest: should round to a multiple of 90

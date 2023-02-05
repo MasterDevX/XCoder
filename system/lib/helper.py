@@ -15,7 +15,9 @@ def get_size(left: float, top: float, right: float, bottom: float) -> (int, int)
     return int(right - left), int(bottom - top)
 
 
-def get_sides(points: List[Tuple[float, float]] or List[Point]) -> (float, float, float, float):
+def get_sides(
+    points: List[Tuple[float, float]] or List[Point]
+) -> (float, float, float, float):
     """Calculates and returns rect sides.
 
     :param points: polygon points
@@ -34,7 +36,7 @@ def get_sides(points: List[Tuple[float, float]] or List[Point]) -> (float, float
             right = max(x for x, _ in points)
             bottom = max(y for _, y in points)
         else:
-            raise TypeError('Unknown point type.')
+            raise TypeError("Unknown point type.")
 
         return left, top, right, bottom
-    raise ValueError('Empty points list.')
+    raise ValueError("Empty points list.")

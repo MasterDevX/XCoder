@@ -6,9 +6,9 @@ from system.localization import locale
 
 
 def cut_sprites(swf: SupercellSWF, export_folder: str):
-    os.makedirs(f'{export_folder}/overwrite', exist_ok=True)
-    os.makedirs(f'{export_folder}/shapes', exist_ok=True)
-    os.makedirs(f'{export_folder}/movie_clips', exist_ok=True)
+    os.makedirs(f"{export_folder}/overwrite", exist_ok=True)
+    os.makedirs(f"{export_folder}/shapes", exist_ok=True)
+    os.makedirs(f"{export_folder}/movie_clips", exist_ok=True)
 
     # TODO: Too slow, fix it
     # movie_clips_skipped = 0
@@ -40,18 +40,18 @@ def cut_sprites(swf: SupercellSWF, export_folder: str):
         Console.progress_bar(
             locale.cut_sprites_process % (shape_index + 1, shapes_count),
             shape_index,
-            shapes_count
+            shapes_count,
         )
 
         rendered_shape = shape.render()
-        rendered_shape.save(f'{export_folder}/shapes/{shape.id}.png')
+        rendered_shape.save(f"{export_folder}/shapes/{shape.id}.png")
 
         regions_count = len(shape.regions)
         for region_index in range(regions_count):
             region = shape.regions[region_index]
 
             rendered_region = region.render(use_original_size=True)
-            rendered_region.save(f'{export_folder}/shape_{shape.id}_{region_index}.png')
+            rendered_region.save(f"{export_folder}/shape_{shape.id}_{region_index}.png")
 
     for shape_index in range(shapes_count):
         shape = swf.shapes[shape_index]

@@ -20,7 +20,7 @@ class Matrix2x3:
         elif tag == 36:
             divider = PRECISE_MULTIPLIER
         else:
-            raise ValueError(f'Unsupported matrix tag: {tag}')
+            raise ValueError(f"Unsupported matrix tag: {tag}")
 
         self.scale_x = reader.read_int() / divider
         self.shear_x = reader.read_int() / divider

@@ -96,12 +96,12 @@ class Locale:
         self.install_to_unlock = None
 
     def load(self, language: str):
-        language_filepath = './system/languages/' + language + '.json'
-        english_language_filepath = './system/languages/en-EU.json'
+        language_filepath = "./system/languages/" + language + ".json"
+        english_language_filepath = "./system/languages/en-EU.json"
 
         loaded_locale = {}
         if os.path.exists(language_filepath):
-            loaded_locale = json.load(open(language_filepath, encoding='utf-8'))  # Any
+            loaded_locale = json.load(open(language_filepath, encoding="utf-8"))  # Any
         english_locale = json.load(open(english_language_filepath))  # English
 
         for key in self.__dict__:
@@ -111,22 +111,22 @@ class Locale:
             setattr(self, key, english_locale[key])
 
     def change(self):
-        language_files = os.listdir('./system/languages/')
+        language_files = os.listdir("./system/languages/")
 
-        print('Select Language\nВыберите язык\nВиберіть Мову\n')
+        print("Select Language\nВыберите язык\nВиберіть Мову\n")
 
         for file_index in range(len(language_files)):
-            language_path = './system/languages/' + language_files[file_index]
-            language_name = json.load(open(language_path, encoding='utf-8'))['name']
+            language_path = "./system/languages/" + language_files[file_index]
+            language_name = json.load(open(language_path, encoding="utf-8"))["name"]
 
-            print(f'{file_index + 1} - {language_name}')
+            print(f"{file_index + 1} - {language_name}")
 
-        language_index = input('\n>>> ')
+        language_index = input("\n>>> ")
         try:
             language_index = int(language_index) - 1
             if language_index >= 0:
                 if language_index < len(language_files):
-                    language = '.'.join(language_files[language_index].split('.')[:-1])
+                    language = ".".join(language_files[language_index].split(".")[:-1])
                     self.load(language)
 
                     return language

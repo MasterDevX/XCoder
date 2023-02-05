@@ -8,21 +8,31 @@ from system.lib.config import config
 from system.localization import locale
 
 
-def print_feature(feature_id: int, name: str, description: str = None, console_width: int = -1):
-    text = f' {feature_id} {name}'
+def print_feature(
+    feature_id: int, name: str, description: str = None, console_width: int = -1
+):
+    text = f" {feature_id} {name}"
     if description:
-        text += ' ' * (console_width // 2 - len(text)) + ': ' + description
+        text += " " * (console_width // 2 - len(text)) + ": " + description
 
     print(textwrap.fill(text, console_width))
 
 
 def print_category(text: str, background_width: int = 10):
-    print(colorama.Back.GREEN + colorama.Fore.BLACK + text + ' ' * (background_width - len(text)) + colorama.Style.RESET_ALL)
+    print(
+        colorama.Back.GREEN
+        + colorama.Fore.BLACK
+        + text
+        + " " * (background_width - len(text))
+        + colorama.Style.RESET_ALL
+    )
 
 
 class Menu:
     class Item:
-        def __init__(self, name: str, description: str = None, handler: typing.Callable = None):
+        def __init__(
+            self, name: str, description: str = None, handler: typing.Callable = None
+        ):
             self.name: str = name
             self.description: str = description
             self.handler: typing.Callable = handler
@@ -36,6 +46,7 @@ class Menu:
         def item(self, name, description):
             def wrapper(handler):
                 self.add(Menu.Item(name, description, handler))
+
             return wrapper
 
         def add(self, item):
@@ -50,19 +61,27 @@ class Menu:
 
     def choice(self):
         console_width = shutil.get_terminal_size().columns
-        print((
-            colorama.Back.BLACK + colorama.Fore.GREEN +
-            locale.xcoder_header % config.version +
-            colorama.Style.RESET_ALL
-        ).center(console_width + 12))
-        print('github.com/Vorono4ka/XCoder'.center(console_width - 1))
+        print(
+            (
+                colorama.Back.BLACK
+                + colorama.Fore.GREEN
+                + locale.xcoder_header % config.version
+                + colorama.Style.RESET_ALL
+            ).center(console_width + 12)
+        )
+        print("github.com/Vorono4ka/XCoder".center(console_width - 1))
         self._print_divider_line(console_width)
 
         for category in self.categories:
             print_category(category.name)
             for item_index in range(len(category.items)):
                 item = category.items[item_index]
-                print_feature(category.id * 10 + item_index + 1, item.name, item.description, console_width)
+                print_feature(
+                    category.id * 10 + item_index + 1,
+                    item.name,
+                    item.description,
+                    console_width,
+                )
             self._print_divider_line(console_width)
 
         choice = input(locale.choice)
@@ -86,7 +105,7 @@ class Menu:
 
     @staticmethod
     def _print_divider_line(console_width: int):
-        print((console_width - 1) * '-')
+        print((console_width - 1) * "-")
 
 
 menu = Menu()

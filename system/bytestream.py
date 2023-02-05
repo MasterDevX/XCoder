@@ -3,7 +3,9 @@ from typing import Literal
 
 
 class Reader(io.BytesIO):
-    def __init__(self, buffer: bytes = b'', endian: Literal['little', 'big'] = 'little'):
+    def __init__(
+        self, buffer: bytes = b"", endian: Literal["little", "big"] = "little"
+    ):
         super().__init__(buffer)
 
         self.buffer = buffer
@@ -37,11 +39,11 @@ class Reader(io.BytesIO):
         length = self.read_uchar()
         if length != 255:
             return self.read(length).decode()
-        return ''
+        return ""
 
 
 class Writer(io.BytesIO):
-    def __init__(self, endian: Literal['little', 'big'] = 'little'):
+    def __init__(self, endian: Literal["little", "big"] = "little"):
         super().__init__()
         self.endian = endian
 

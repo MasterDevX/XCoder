@@ -23,4 +23,3 @@ class MatrixBank:
 
     def get_color_transform(self, index: int) -> ColorTransform:
         return self.color_transforms[index]
-
