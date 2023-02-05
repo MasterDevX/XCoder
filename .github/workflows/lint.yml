@@ -23,8 +23,8 @@ jobs:
 
     - name: Linting code by flake8
       run: |
-        python -m flake8 --show-source --statistics
+        pipx run flake8 --show-source --statistics
         
     - name: Check types by pyright
       run: |
-        python -m pyright
+        pipx run pyright
