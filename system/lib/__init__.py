@@ -33,17 +33,14 @@ logger.add(sys.stdout, format="<lvl>[{level}] {message}</lvl>", level="INFO")
 locale.load(config.language)
 
 
-try:
-    # noinspection PyUnresolvedReferences
-    import requests
-
-    del requests
-
+def check_auto_update():
     if config.auto_update and time.time() - config.last_update > 60 * 60 * 24 * 7:
         check_update()
         config.last_update = int(time.time())
         config.dump()
 
+
+def check_files_updated():
     if config.has_update:
         logger.opt(colors=True).info(f'<green>{locale.update_done % ""}</green>')
         if Console.question(locale.done_qu):
@@ -56,8 +53,6 @@ try:
             config.dump()
         else:
             exit()
-except ImportError:
-    pass
 
 
 # noinspection PyUnresolvedReferences
@@ -131,19 +126,9 @@ def refill_menu():
         logger.warning(locale.install_to_unlock % "sc-compression")
 
     other = Menu.Category(10, locale.other_features_label)
-    try:
-        import requests
-
-        del requests
-
-        other.add(
-            Menu.Item(
-                locale.check_update, locale.version % config.version, check_update
-            )
-        )
-    except ImportError:
-        logger.warning(locale.install_to_unlock % "requests")
-
+    other.add(
+        Menu.Item(locale.check_update, locale.version % config.version, check_update)
+    )
     other.add(Menu.Item(locale.check_for_outdated, None, check_for_outdated))
     other.add(
         Menu.Item(

@@ -22,10 +22,10 @@ def download_update(zip_url):
         os.mkdir("updates")
 
     try:
-        import requests
+        import urllib.request
 
         with open("updates/update.zip", "wb") as f:
-            f.write(requests.get(zip_url).content)
+            f.write(urllib.request.urlopen(zip_url).read())
             f.close()
 
         import zipfile
