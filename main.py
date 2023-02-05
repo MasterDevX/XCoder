@@ -6,7 +6,7 @@ import time
 try:
     from loguru import logger
 except ImportError:
-    raise RuntimeError('Please, install loguru using pip')
+    raise RuntimeError("Please, install loguru using pip")
 
 from system import clear
 from system.lib import config, locale, refill_menu, menu
@@ -29,14 +29,16 @@ def main():
             start_time = time.time()
             with logger.catch():
                 handler()
-            logger.opt(colors=True).info(f'<green>{locale.done % (time.time() - start_time)}</green>')
+            logger.opt(colors=True).info(
+                f"<green>{locale.done % (time.time() - start_time)}</green>"
+            )
             input(locale.to_continue)
         clear()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        logger.info('Exit.')
+        logger.info("Exit.")
         pass

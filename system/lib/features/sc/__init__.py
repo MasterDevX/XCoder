@@ -12,18 +12,20 @@ from system.lib.xcod import FileInfo
 from system.localization import locale
 
 
-def compile_sc(_dir, file_info: FileInfo, sheets: list = None, output_folder: str = None):
-    name = _dir.split('/')[-2]
+def compile_sc(
+    _dir, file_info: FileInfo, sheets: list = None, output_folder: str = None
+):
+    name = _dir.split("/")[-2]
 
     if sheets:
         files = sheets
     else:
         files = []
-        [files.append(i) if i.endswith('.png') else None for i in os.listdir(_dir)]
+        [files.append(i) if i.endswith(".png") else None for i in os.listdir(_dir)]
         files.sort()
         if not files:
-            return logger.info(locale.dir_empty % _dir.split('/')[-2])
-        files = [Image.open(f'{_dir}{i}') for i in files]
+            return logger.info(locale.dir_empty % _dir.split("/")[-2])
+        files = [Image.open(f"{_dir}{i}") for i in files]
 
     logger.info(locale.collecting_inf)
     sc = Writer()
@@ -39,7 +41,10 @@ def compile_sc(_dir, file_info: FileInfo, sheets: list = None, output_folder: st
         pixel_type = sheet_info.pixel_type
 
         if img.size != sheet_info.size:
-            logger.info(locale.illegal_size % (sheet_info.width, sheet_info.height, img.width, img.height))
+            logger.info(
+                locale.illegal_size
+                % (sheet_info.width, sheet_info.height, img.width, img.height)
+            )
 
             if Console.question(locale.resize_qu):
                 logger.info(locale.resizing)
@@ -52,7 +57,7 @@ def compile_sc(_dir, file_info: FileInfo, sheets: list = None, output_folder: st
 
         logger.info(locale.about_sc % (name, picture_index, pixel_type, width, height))
 
-        sc.write(struct.pack('<BIBHH', file_type, file_size, pixel_type, width, height))
+        sc.write(struct.pack("<BIBHH", file_type, file_size, pixel_type, width, height))
 
         if file_type in (27, 28):
             split_image(img)
@@ -62,4 +67,4 @@ def compile_sc(_dir, file_info: FileInfo, sheets: list = None, output_folder: st
     sc.write(bytes(5))
     print()
 
-    write_sc(f'{output_folder}/{name}.sc', sc.getvalue(), use_lzham)
+    write_sc(f"{output_folder}/{name}.sc", sc.getvalue(), use_lzham)

@@ -55,7 +55,7 @@ class MovieClip:
         self.fps = swf.reader.read_char()
         self.frames_count = swf.reader.read_ushort()
 
-        if tag in (3, 14,):
+        if tag in (3, 14):
             pass
         else:
             transforms_count = swf.reader.read_uint()
@@ -65,7 +65,9 @@ class MovieClip:
                 matrix_index = swf.reader.read_ushort()
                 color_transform_index = swf.reader.read_ushort()
 
-                self.frame_elements.append((child_index, matrix_index, color_transform_index))
+                self.frame_elements.append(
+                    (child_index, matrix_index, color_transform_index)
+                )
 
         binds_count = swf.reader.read_ushort()
 
@@ -73,7 +75,7 @@ class MovieClip:
             bind_id = swf.reader.read_ushort()  # bind_id
             self.binds.append(bind_id)
 
-        if tag in (12, 35,):
+        if tag in (12, 35):
             for i in range(binds_count):
                 blend = swf.reader.read_char()  # blend
                 self.blends.append(blend)
@@ -93,7 +95,11 @@ class MovieClip:
             if frame_tag == 11:
                 frame = MovieClipFrame()
                 frame.load(swf.reader)
-                frame.set_elements(self.frame_elements[elements_used:elements_used + frame.get_elements_count()])
+                frame.set_elements(
+                    self.frame_elements[
+                        elements_used : elements_used + frame.get_elements_count()
+                    ]
+                )
                 self.frames.append(frame)
 
                 elements_used += frame.get_elements_count()
@@ -110,7 +116,7 @@ class MovieClip:
 
         width, height = get_size(left, top, right, bottom)
         size = ceil(width), ceil(height)
-        image = Image.new('RGBA', size)
+        image = Image.new("RGBA", size)
 
         frame = self.frames[0]
         for child_index, matrix_index, _ in frame.get_elements():
@@ -151,7 +157,12 @@ class MovieClip:
                 if isinstance(display_object, Shape):
                     display_object.apply_matrix(matrix)
 
-                    shape_left, shape_top, shape_right, shape_bottom = display_object.get_sides()
+                    (
+                        shape_left,
+                        shape_top,
+                        shape_right,
+                        shape_bottom,
+                    ) = display_object.get_sides()
 
                     left = min(left, shape_left)
                     top = min(top, shape_top)

@@ -3,19 +3,19 @@ import os
 
 
 class Config:
-    DEFAULT_LANGUAGE = 'en-EU'
+    DEFAULT_LANGUAGE = "en-EU"
 
-    config_path = './system/config.json'
+    config_path = "./system/config.json"
     inited: bool
 
     def __init__(self):
         self.config_items = (
-            'initialized',
-            'version',
-            'language',
-            'has_update',
-            'last_update',
-            'auto_update',
+            "initialized",
+            "version",
+            "language",
+            "has_update",
+            "last_update",
+            "auto_update",
         )
 
         self.initialized: bool = False
@@ -41,10 +41,10 @@ class Config:
                 setattr(self, key, value)
 
     def dump(self):
-        json.dump({
-            item: getattr(self, item)
-            for item in self.config_items
-        }, open(self.config_path, 'w'))
+        json.dump(
+            {item: getattr(self, item) for item in self.config_items},
+            open(self.config_path, "w"),
+        )
 
 
 config = Config()

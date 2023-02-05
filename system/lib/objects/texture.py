@@ -2,7 +2,12 @@ import os
 
 from PIL import Image
 
-from system.lib.images import get_format_by_pixel_type, load_texture, join_image, load_image_from_buffer
+from system.lib.images import (
+    get_format_by_pixel_type,
+    load_texture,
+    join_image,
+    load_image_from_buffer,
+)
 
 
 class SWFTexture:
@@ -19,7 +24,9 @@ class SWFTexture:
         self.width, self.height = (swf.reader.read_ushort(), swf.reader.read_ushort())
 
         if has_texture:
-            img = Image.new(get_format_by_pixel_type(self.pixel_type), (self.width, self.height))
+            img = Image.new(
+                get_format_by_pixel_type(self.pixel_type), (self.width, self.height)
+            )
 
             load_texture(swf.reader, self.pixel_type, img)
 
@@ -28,6 +35,6 @@ class SWFTexture:
             else:
                 load_image_from_buffer(img)
 
-            os.remove('pixel_buffer')
+            os.remove("pixel_buffer")
 
             self.image = img

@@ -26,12 +26,12 @@ class FileInfo:
 
 
 def parse_info(xcod_path: str) -> (FileInfo, Reader):
-    with open(xcod_path, 'rb') as file:
-        xcod = Reader(file.read(), 'big')
+    with open(xcod_path, "rb") as file:
+        xcod = Reader(file.read(), "big")
 
     magic = xcod.read(4)
-    if magic != b'XCOD':
-        raise IOError('Unknown file MAGIC: ' + magic.hex())
+    if magic != b"XCOD":
+        raise IOError("Unknown file MAGIC: " + magic.hex())
 
     use_lzham = xcod.read_uchar() == 1
 
