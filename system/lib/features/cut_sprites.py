@@ -50,8 +50,7 @@ def cut_sprites(swf: SupercellSWF, export_folder: str):
         for region_index in range(regions_count):
             region = shape.regions[region_index]
 
-            region.apply_matrix(None)
-            rendered_region = region.render()
+            rendered_region = region.render(use_original_size=True)
             rendered_region.save(f'{export_folder}/shape_{shape.id}_{region_index}.png')
 
     for shape_index in range(shapes_count):

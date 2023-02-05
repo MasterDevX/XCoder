@@ -21,9 +21,10 @@ class Console:
 
     @staticmethod
     def question(message):
-        answer = None
-        while not answer in 'ny':
+        while True:
             answer = input(f'[????] {message} [Y/n] ').lower()
+            if answer in 'ny':
+                break
         
         return 'ny'.index(answer)
 

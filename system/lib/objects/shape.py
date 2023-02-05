@@ -1,5 +1,5 @@
 from math import ceil, degrees, atan2
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from PIL import Image, ImageDraw
 
@@ -125,8 +125,8 @@ class Region:
 
             self._uv_points[i].position = (u_rounded, v_rounded)
 
-    def render(self):
-        self._transformed_points = self._xy_points
+    def render(self, use_original_size: bool = False) -> Image.Image:
+        self.apply_matrix(None)
 
         left, top, right, bottom = self.get_sides()
         width, height = get_size(left, top, right, bottom)
@@ -150,8 +150,9 @@ class Region:
         rendered_region = rendered_region.rotate(-self.rotation, expand=True)
         if self.is_mirrored:
             rendered_region = rendered_region.transpose(Image.FLIP_LEFT_RIGHT)
-        rendered_region = rendered_region.resize((width, height), Image.ANTIALIAS)
-        return rendered_region
+        if use_original_size:
+            return rendered_region
+        return rendered_region.resize((width, height), Image.ANTIALIAS)
 
     def get_image(self) -> Image:
         left, top, right, bottom = get_sides(self._uv_points)
@@ -205,7 +206,7 @@ class Region:
     def get_sides(self) -> Tuple[float, float, float, float]:
         return get_sides(self._transformed_points)
 
-    def apply_matrix(self, matrix: Matrix2x3 = None) -> None:
+    def apply_matrix(self, matrix: Optional[Matrix2x3] = None) -> None:
         """Applies affine matrix to shape (xy) points. If matrix is none, copies the points.
 
         :param matrix: Affine matrix
@@ -220,7 +221,9 @@ class Region:
                     matrix.apply_y(point.x, point.y)
                 ))
 
-    def calculate_rotation(self, round_to_nearest: bool = False, custom_points: List[Point] = None) -> (int, bool):
+    def calculate_rotation(self,
+                           round_to_nearest: bool = False,
+                           custom_points: List[Point] = None) -> (int, bool):
         """Calculates rotation and if region is mirrored.
 
         :param round_to_nearest: should round to a multiple of 90
