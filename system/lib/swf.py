@@ -1,13 +1,12 @@
 import os
-from typing import List
+from typing import List, Optional, Tuple
 
 from loguru import logger
 
-from system.bytestream import Writer, Reader
+from system.bytestream import Reader, Writer
 from system.lib.features.files import open_sc
-
 from system.lib.matrices.matrix_bank import MatrixBank
-from system.lib.objects import Shape, MovieClip, SWFTexture
+from system.lib.objects import MovieClip, Shape, SWFTexture
 from system.localization import locale
 
 DEFAULT_HIGHRES_SUFFIX = "_highres"
@@ -22,12 +21,12 @@ class SupercellSWF:
     TEXTURE_EXTENSION = "_tex.sc"
 
     def __init__(self):
-        self.filename: str or None = None
-        self.reader: Reader or None = None
+        self.filename: Optional[str] = None
+        self.reader: Optional[Reader] = None
 
         self.use_lowres_texture: bool = False
         self.use_uncommon_texture: bool = False
-        self.uncommon_texture_path: str or None = None
+        self.uncommon_texture_path: Optional[str] = None
 
         self.shapes: List[Shape] = []
         self.movie_clips: List[MovieClip] = []
@@ -35,7 +34,7 @@ class SupercellSWF:
 
         self.xcod_writer = Writer("big")
 
-        self._filepath: str or None = None
+        self._filepath: Optional[str] = None
 
         self._lowres_suffix: str = DEFAULT_LOWRES_SUFFIX
         self._highres_suffix: str = DEFAULT_HIGHRES_SUFFIX
@@ -52,7 +51,7 @@ class SupercellSWF:
         self._matrix_banks: List[MatrixBank] = []
         self._matrix_bank: MatrixBank
 
-    def load(self, filepath: str) -> (bool, bool):
+    def load(self, filepath: str) -> Tuple[bool, bool]:
         self._filepath = filepath
 
         texture_loaded, use_lzham = self._load_internal(
@@ -70,7 +69,7 @@ class SupercellSWF:
 
         return texture_loaded, use_lzham
 
-    def _load_internal(self, filepath: str, is_texture: bool) -> (bool, bool):
+    def _load_internal(self, filepath: str, is_texture: bool) -> Tuple[bool, bool]:
         self.filename = os.path.basename(filepath)
 
         decompressed_data, use_lzham = open_sc(filepath)
@@ -203,7 +202,7 @@ class SupercellSWF:
                 self.reader.read(length)
 
     def get_display_object(
-        self, target_id: int, name: str or None = None, *, raise_error: bool = False
+        self, target_id: int, name: Optional[str] = None, *, raise_error: bool = False
     ):
         for shape in self.shapes:
             if shape.id == target_id:

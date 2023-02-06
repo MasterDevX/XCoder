@@ -1,10 +1,12 @@
 import io
-from typing import Literal
+from typing import Literal, Optional, Union
 
 
 class Reader(io.BytesIO):
     def __init__(
-        self, buffer: bytes = b"", endian: Literal["little", "big"] = "little"
+        self,
+        buffer: bytes = b"",
+        endian: Union[Literal["little"], Literal["big"]] = "little",
     ):
         super().__init__(buffer)
 
@@ -68,7 +70,7 @@ class Writer(io.BytesIO):
     def write_int32(self, integer: int):
         self.write_int(integer, 4, True)
 
-    def write_string(self, string: str = None):
+    def write_string(self, string: Optional["str"] = None):
         if string is None:
             self.write_byte(255)
             return

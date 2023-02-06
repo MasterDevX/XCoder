@@ -1,9 +1,9 @@
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from system.lib.objects.point import Point
 
 
-def get_size(left: float, top: float, right: float, bottom: float) -> (int, int):
+def get_size(left: float, top: float, right: float, bottom: float) -> Tuple[int, int]:
     """Returns width and height of given rect.
 
     :param left: left side of polygon
@@ -16,13 +16,14 @@ def get_size(left: float, top: float, right: float, bottom: float) -> (int, int)
 
 
 def get_sides(
-    points: List[Tuple[float, float]] or List[Point]
-) -> (float, float, float, float):
+    points: Union[List[Tuple[float, float]], List[Tuple[int, int]], List[Point]]
+) -> Tuple[float, float, float, float]:
     """Calculates and returns rect sides.
 
     :param points: polygon points
     :return: left, top, right, bottom
     """
+
     if len(points) > 0:
         point = points[0]
         if isinstance(point, Point):

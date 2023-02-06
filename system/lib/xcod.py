@@ -25,7 +25,7 @@ class FileInfo:
     sheets: List[SheetInfo]
 
 
-def parse_info(xcod_path: str) -> (FileInfo, Reader):
+def parse_info(xcod_path: str) -> Tuple[FileInfo, Reader]:
     with open(xcod_path, "rb") as file:
         xcod = Reader(file.read(), "big")
 

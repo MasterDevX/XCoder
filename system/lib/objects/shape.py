@@ -1,11 +1,12 @@
-from math import ceil, degrees, atan2
-from typing import List, Tuple, Optional
+from math import atan2, ceil, degrees
+from typing import List, Optional, Tuple
 
 from PIL import Image, ImageDraw
 
 from system.lib.helper import get_sides, get_size
 from system.lib.matrices.matrix2x3 import Matrix2x3
 from system.lib.objects.point import Point
+from system.lib.objects.texture import SWFTexture
 
 
 class Shape:
@@ -56,7 +57,7 @@ class Shape:
 
         return image
 
-    def apply_matrix(self, matrix: Matrix2x3 = None) -> None:
+    def apply_matrix(self, matrix: Optional[Matrix2x3] = None) -> None:
         """Calls apply_matrix method for all regions.
 
         :param matrix: Affine matrix
@@ -93,9 +94,9 @@ class Region:
         self._points_count = 0
         self._xy_points: List[Point] = []
         self._uv_points: List[Point] = []
-        self._transformed_points: List[Point] or None = None
+        self._transformed_points: List[Point] = []
 
-        self.texture = None
+        self.texture: Optional[SWFTexture]
 
     def load(self, swf, tag: int):
         self.texture_index = swf.reader.read_uchar()
@@ -162,7 +163,7 @@ class Region:
             return rendered_region
         return rendered_region.resize((width, height), Image.ANTIALIAS)
 
-    def get_image(self) -> Image:
+    def get_image(self) -> Image.Image:
         left, top, right, bottom = get_sides(self._uv_points)
         width, height = get_size(left, top, right, bottom)
         width, height = max(width, 1), max(height, 1)
@@ -177,7 +178,7 @@ class Region:
         if height == 1:
             bottom += 1
 
-        bbox = left, top, right, bottom
+        bbox = int(left), int(top), int(right), int(bottom)
 
         color = 255
         img_mask = Image.new("L", (self.texture.width, self.texture.height), 0)
@@ -221,9 +222,10 @@ class Region:
         return get_sides(self._transformed_points)
 
     def apply_matrix(self, matrix: Optional[Matrix2x3] = None) -> None:
-        """Applies affine matrix to shape (xy) points. If matrix is none, copies the points.
+        """Applies affine matrix to shape (xy) points.
+        If matrix is none, copies the points.
 
-        :param matrix: Affine matrix
+        :param matrix:  Affine matrix
         """
 
         self._transformed_points = self._xy_points
@@ -238,7 +240,9 @@ class Region:
                 )
 
     def calculate_rotation(
-        self, round_to_nearest: bool = False, custom_points: List[Point] = None
+        self,
+        round_to_nearest: bool = False,
+        custom_points: Optional[List[Point]] = None,
     ) -> (int, bool):
         """Calculates rotation and if region is mirrored.
 
