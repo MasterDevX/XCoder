@@ -18,8 +18,6 @@ jobs:
         pip install pipx
         pipx install cookiecutter
         pipx runpip cookiecutter install -r requirements.txt
-        pipx install flake8
-        pipx install pyright
 
     - name: Linting code by flake8
       run: |
