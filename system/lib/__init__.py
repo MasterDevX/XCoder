@@ -1,16 +1,16 @@
 import sys
 import time
 
+from loguru import logger
+
 from system import clear
 from system.lib.config import config
 from system.lib.console import Console
 from system.lib.features.directories import clear_directories
 from system.lib.features.initialization import initialize
-from system.lib.features.update.check import check_update, check_for_outdated, get_tags
-from system.lib.menu import menu, Menu
+from system.lib.features.update.check import check_for_outdated, check_update, get_tags
+from system.lib.menu import Menu, menu
 from system.localization import locale
-
-from loguru import logger
 
 logger.remove()
 logger.add(
@@ -64,7 +64,9 @@ def refill_menu():
         import sc_compression
 
         del sc_compression
-
+    except ImportError:
+        logger.warning(locale.install_to_unlock % "sc-compression")
+    else:
         from system.lib.features.csv.compress import compress_csv
         from system.lib.features.csv.decompress import decompress_csv
 
@@ -72,91 +74,111 @@ def refill_menu():
             import PIL
 
             del PIL
-
-            from system.lib.features.sc.decode import sc_decode
-            from system.lib.features.sc.encode import sc_encode
-            from system.lib.features.sc.decode_and_cut import decode_and_cut
-            from system.lib.features.sc.assembly_encode import sc1_encode
+        except ImportError:
+            logger.warning(locale.install_to_unlock % "PILLOW")
+        else:
+            from system.lib.features.sc.decode import (
+                decode_and_render_objects,
+                decode_textures_only,
+            )
+            from system.lib.features.sc.encode import (
+                collect_objects_and_encode,
+                encode_textures_only,
+            )
 
             sc_category = Menu.Category(0, locale.sc_label)
             sc_category.add(
-                Menu.Item(locale.decode_sc, locale.decode_sc_description, sc_decode)
-            )
-            sc_category.add(
-                Menu.Item(locale.encode_sc, locale.encode_sc_description, sc_encode)
-            )
-            sc_category.add(
                 Menu.Item(
-                    locale.decode_by_parts,
-                    locale.decode_by_parts_description,
-                    decode_and_cut,
+                    name=locale.decode_sc,
+                    description=locale.decode_sc_description,
+                    handler=decode_textures_only,
                 )
             )
             sc_category.add(
                 Menu.Item(
-                    locale.encode_by_parts,
-                    locale.encode_by_parts_description,
-                    sc1_encode,
+                    name=locale.encode_sc,
+                    description=locale.encode_sc_description,
+                    handler=encode_textures_only,
                 )
             )
             sc_category.add(
                 Menu.Item(
-                    locale.overwrite_by_parts,
-                    locale.overwrite_by_parts_description,
-                    lambda: sc1_encode(True),
+                    name=locale.decode_by_parts,
+                    description=locale.decode_by_parts_description,
+                    handler=decode_and_render_objects,
+                )
+            )
+            sc_category.add(
+                Menu.Item(
+                    name=locale.encode_by_parts,
+                    description=locale.encode_by_parts_description,
+                    handler=collect_objects_and_encode,
+                )
+            )
+            sc_category.add(
+                Menu.Item(
+                    name=locale.overwrite_by_parts,
+                    description=locale.overwrite_by_parts_description,
+                    handler=lambda: collect_objects_and_encode(True),
                 )
             )
             menu.add_category(sc_category)
-        except ImportError:
-            logger.warning(locale.install_to_unlock % "PILLOW")
 
         csv_category = Menu.Category(1, locale.csv_label)
         csv_category.add(
             Menu.Item(
-                locale.decompress_csv, locale.decompress_csv_description, decompress_csv
+                name=locale.decompress_csv,
+                description=locale.decompress_csv_description,
+                handler=decompress_csv,
             )
         )
         csv_category.add(
             Menu.Item(
-                locale.compress_csv, locale.compress_csv_description, compress_csv
+                name=locale.compress_csv,
+                description=locale.compress_csv_description,
+                handler=compress_csv,
             )
         )
         menu.add_category(csv_category)
-    except ImportError:
-        logger.warning(locale.install_to_unlock % "sc-compression")
 
     other = Menu.Category(10, locale.other_features_label)
     other.add(
-        Menu.Item(locale.check_update, locale.version % config.version, check_update)
+        Menu.Item(
+            name=locale.check_update,
+            description=locale.version % config.version,
+            handler=check_update,
+        )
     )
-    other.add(Menu.Item(locale.check_for_outdated, None, check_for_outdated))
+    other.add(Menu.Item(name=locale.check_for_outdated, handler=check_for_outdated))
     other.add(
         Menu.Item(
-            locale.reinit,
-            locale.reinit_description,
-            lambda: (initialize(), refill_menu()),
+            name=locale.reinit,
+            description=locale.reinit_description,
+            handler=lambda: (initialize(), refill_menu()),
         )
     )
     other.add(
         Menu.Item(
-            locale.change_language,
-            locale.change_lang_description % config.language,
-            lambda: (config.change_language(locale.change()), refill_menu()),
+            name=locale.change_language,
+            description=locale.change_lang_description % config.language,
+            handler=lambda: (config.change_language(locale.change()), refill_menu()),
         )
     )
     other.add(
         Menu.Item(
-            locale.clear_directories,
-            locale.clean_dirs_description,
-            lambda: clear_directories() if Console.question(locale.clear_qu) else -1,
+            name=locale.clear_directories,
+            description=locale.clean_dirs_description,
+            handler=lambda: clear_directories()
+            if Console.question(locale.clear_qu)
+            else -1,
         )
     )
     other.add(
         Menu.Item(
-            locale.toggle_update_auto_checking,
-            locale.enabled if config.auto_update else locale.disabled,
-            lambda: (config.toggle_auto_update(), refill_menu()),
+            name=locale.toggle_update_auto_checking,
+            description=locale.enabled if config.auto_update else locale.disabled,
+            handler=lambda: (config.toggle_auto_update(), refill_menu()),
         )
     )
-    other.add(Menu.Item(locale.exit, None, lambda: (clear(), exit())))
+    other.add(Menu.Item(name=locale.exit, handler=lambda: (clear(), exit())))
     menu.add_category(other)

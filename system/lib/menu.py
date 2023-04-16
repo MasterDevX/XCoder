@@ -9,7 +9,7 @@ from system.localization import locale
 
 
 def print_feature(
-    feature_id: int, name: str, description: str = None, console_width: int = -1
+    feature_id: int, name: str, description: str | None = None, console_width: int = -1
 ):
     text = f" {feature_id} {name}"
     if description:
@@ -31,10 +31,14 @@ def print_category(text: str, background_width: int = 10):
 class Menu:
     class Item:
         def __init__(
-            self, name: str, description: str = None, handler: typing.Callable = None
+            self,
+            *,
+            name: str,
+            handler: typing.Callable,
+            description: str | None = None,
         ):
             self.name: str = name
-            self.description: str = description
+            self.description: str | None = description
             self.handler: typing.Callable = handler
 
     class Category:
@@ -43,9 +47,9 @@ class Menu:
             self.name = name
             self.items = []
 
-        def item(self, name, description):
-            def wrapper(handler):
-                self.add(Menu.Item(name, description, handler))
+        def item(self, name: str, description: str | None = None):
+            def wrapper(handler: typing.Callable):
+                self.add(Menu.Item(name=name, handler=handler, description=description))
 
             return wrapper
 
@@ -104,7 +108,7 @@ class Menu:
         return None
 
     @staticmethod
-    def _print_divider_line(console_width: int):
+    def _print_divider_line(console_width: int) -> None:
         print((console_width - 1) * "-")
 
 

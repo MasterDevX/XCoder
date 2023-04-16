@@ -1,17 +1,15 @@
 import io
-from typing import Literal, Optional, Union
+from typing import Literal, Optional
 
 
 class Reader(io.BytesIO):
     def __init__(
         self,
-        buffer: bytes = b"",
-        endian: Union[Literal["little"], Literal["big"]] = "little",
+        initial_buffer: bytes = b"",
+        endian: Literal["little", "big"] = "little",
     ):
-        super().__init__(buffer)
-
-        self.buffer = buffer
-        self.endian = endian
+        super().__init__(initial_buffer)
+        self.endian: Literal["little", "big"] = endian
 
     def read_integer(self, length: int, signed=False) -> int:
         return int.from_bytes(self.read(length), self.endian, signed=signed)
@@ -47,10 +45,10 @@ class Reader(io.BytesIO):
 class Writer(io.BytesIO):
     def __init__(self, endian: Literal["little", "big"] = "little"):
         super().__init__()
-        self.endian = endian
+        self._endian: Literal["little", "big"] = endian
 
     def write_int(self, integer: int, length: int = 1, signed: bool = False):
-        self.write(integer.to_bytes(length, self.endian, signed=signed))
+        self.write(integer.to_bytes(length, self._endian, signed=signed))
 
     def write_ubyte(self, integer: int):
         self.write_int(integer)

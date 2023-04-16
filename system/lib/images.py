@@ -1,11 +1,15 @@
 import math
-import struct
 
 import PIL.PyAccess
 from PIL import Image
 
-from system.bytestream import Reader
+from system.bytestream import Reader, Writer
 from system.lib.console import Console
+from system.lib.pixel_utils import (
+    get_channel_count_by_pixel_type,
+    get_read_function,
+    get_write_function,
+)
 from system.localization import locale
 
 CHUNK_SIZE = 32
@@ -14,7 +18,7 @@ CHUNK_SIZE = 32
 def load_image_from_buffer(img: Image.Image) -> None:
     width, height = img.size
     # noinspection PyTypeChecker
-    img_loaded: PIL.PyAccess.PyAccess = img.load()
+    img_loaded: PIL.PyAccess.PyAccess = img.load()  # type: ignore
 
     with open("pixel_buffer", "rb") as pixel_buffer:
         channels_count = int.from_bytes(pixel_buffer.read(1), "little")
@@ -30,7 +34,7 @@ def join_image(img: Image.Image) -> None:
 
         width, height = img.size
         # noinspection PyTypeChecker
-        loaded_img: PIL.PyAccess.PyAccess = img.load()
+        loaded_img: PIL.PyAccess.PyAccess = img.load()  # type: ignore
 
         x_chunks_count = width // CHUNK_SIZE
         y_chunks_count = height // CHUNK_SIZE
@@ -60,9 +64,9 @@ def split_image(img: Image.Image):
 
     width, height = img.size
     # noinspection PyTypeChecker
-    loaded_image: PIL.PyAccess.PyAccess = img.load()
+    loaded_image: PIL.PyAccess.PyAccess = img.load()  # type: ignore
     # noinspection PyTypeChecker
-    loaded_clone: PIL.PyAccess.PyAccess = img.copy().load()
+    loaded_clone: PIL.PyAccess.PyAccess = img.copy().load()  # type: ignore
 
     x_chunks_count = width // CHUNK_SIZE
     y_chunks_count = height // CHUNK_SIZE
@@ -87,94 +91,44 @@ def split_image(img: Image.Image):
         Console.progress_bar(locale.split_pic, y_chunk, y_chunks_count + 1)
 
 
-def get_pixel_size(_type):
-    if _type in (0, 1):
+def get_byte_count_by_pixel_type(pixel_type: int) -> int:
+    if pixel_type in (0, 1):
         return 4
-    elif _type in (2, 3, 4, 6):
+    elif pixel_type in (2, 3, 4, 6):
         return 2
-    elif _type == 10:
+    elif pixel_type == 10:
         return 1
-    raise Exception(locale.unk_type % _type)
+    raise Exception(locale.unknown_pixel_type % pixel_type)
 
 
-def get_format_by_pixel_type(_type):
-    if _type in (0, 1, 2, 3):
+def get_format_by_pixel_type(pixel_type: int) -> str:
+    if pixel_type in (0, 1, 2, 3):
         return "RGBA"
-    elif _type == 4:
+    elif pixel_type == 4:
         return "RGB"
-    elif _type == 6:
+    elif pixel_type == 6:
         return "LA"
-    elif _type == 10:
+    elif pixel_type == 10:
         return "L"
 
-    raise Exception(locale.unk_type % _type)
+    raise Exception(locale.unknown_pixel_type % pixel_type)
 
 
-def load_texture(data: Reader, _type, img):
-    read_pixel = None
-    channels_count = 4
-    if _type in (0, 1):
-
-        def read_pixel():
-            return (
-                data.read_uchar(),
-                data.read_uchar(),
-                data.read_uchar(),
-                data.read_uchar(),
-            )
-
-    elif _type == 2:
-
-        def read_pixel():
-            p = data.read_ushort()
-            return (
-                (p >> 12 & 15) << 4,
-                (p >> 8 & 15) << 4,
-                (p >> 4 & 15) << 4,
-                (p >> 0 & 15) << 4,
-            )
-
-    elif _type == 3:
-
-        def read_pixel():
-            p = data.read_ushort()
-            return (
-                (p >> 11 & 31) << 3,
-                (p >> 6 & 31) << 3,
-                (p >> 1 & 31) << 3,
-                (p & 255) << 7,
-            )
-
-    elif _type == 4:
-        channels_count = 3
-
-        def read_pixel():
-            p = data.read_ushort()
-            return (p >> 11 & 31) << 3, (p >> 5 & 63) << 2, (p & 31) << 3
-
-    elif _type == 6:
-        channels_count = 2
-
-        def read_pixel():
-            return (data.read_uchar(), data.read_uchar())[::-1]
-
-    elif _type == 10:
-        channels_count = 1
-
-        def read_pixel():
-            return data.read_uchar()
-
+def load_texture(reader: Reader, pixel_type: int, img: Image.Image) -> None:
+    channel_count = get_channel_count_by_pixel_type(pixel_type)
+    read_pixel = get_read_function(pixel_type)
     if read_pixel is None:
-        return
+        raise Exception(locale.unknown_pixel_type % pixel_type)
 
     with open("pixel_buffer", "wb") as pixel_buffer:
-        pixel_buffer.write(channels_count.to_bytes(1, "little"))
+        pixel_buffer.write(channel_count.to_bytes(1, "little"))
+        print()
 
         width, height = img.size
         point = -1
         for y in range(height):
             for x in range(width):
-                pixel = read_pixel()
+                pixel = read_pixel(reader)
                 for channel in pixel:
                     pixel_buffer.write(channel.to_bytes(1, "little"))
 
@@ -184,50 +138,18 @@ def load_texture(data: Reader, _type, img):
                 point = curr
 
 
-def save_texture(sc, img, _type):
-    if _type in (0, 1):
-
-        def write_pixel(pixel):
-            return struct.pack("4B", *pixel)
-
-    elif _type == 2:
-
-        def write_pixel(pixel):
-            r, g, b, a = pixel
-            return struct.pack("<H", a >> 4 | b >> 4 << 4 | g >> 4 << 8 | r >> 4 << 12)
-
-    elif _type == 3:
-
-        def write_pixel(pixel):
-            r, g, b, a = pixel
-            return struct.pack("<H", a >> 7 | b >> 3 << 1 | g >> 3 << 6 | r >> 3 << 11)
-
-    elif _type == 4:
-
-        def write_pixel(pixel):
-            r, g, b = pixel
-            return struct.pack("<H", b >> 3 | g >> 2 << 5 | r >> 3 << 11)
-
-    elif _type == 6:
-
-        def write_pixel(pixel):
-            return struct.pack("2B", *pixel[::-1])
-
-    elif _type == 10:
-
-        def write_pixel(pixel):
-            return struct.pack("B", pixel)
-
-    else:
-        return
+def save_texture(writer: Writer, img: Image.Image, pixel_type: int):
+    write_pixel = get_write_function(pixel_type)
+    if write_pixel is None:
+        raise Exception(locale.unknown_pixel_type % pixel_type)
 
     width, height = img.size
 
-    pix = img.getdata()
+    pixels = img.getdata()
     point = -1
     for y in range(height):
         for x in range(width):
-            sc.write(write_pixel(pix[y * width + x]))
+            writer.write(write_pixel(pixels[y * width + x]))
 
         curr = Console.percent(y, height)
         if curr > point:
