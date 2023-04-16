@@ -1,3 +1,5 @@
+import os
+
 from loguru import logger
 from sc_compression import compress, decompress
 from sc_compression.signatures import Signatures
@@ -5,7 +7,7 @@ from sc_compression.signatures import Signatures
 from system.localization import locale
 
 
-def write_sc(output_filename: str, buffer: bytes, use_lzham: bool):
+def write_sc(output_filename: str | os.PathLike, buffer: bytes, use_lzham: bool):
     with open(output_filename, "wb") as file_out:
         logger.info(locale.header_done)
 
@@ -21,6 +23,7 @@ def write_sc(output_filename: str, buffer: bytes, use_lzham: bool):
             compressed = compress(buffer, Signatures.SC, 3)
             file_out.write(compressed)
         logger.info(locale.compression_done)
+    print()
 
 
 def open_sc(input_filename: str) -> tuple[bytes, bool]:

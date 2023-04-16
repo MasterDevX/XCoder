@@ -1,6 +1,6 @@
-import os
 import struct
-from typing import List, Optional
+from pathlib import Path
+from typing import List
 
 from loguru import logger
 from PIL import Image
@@ -14,57 +14,46 @@ from system.localization import locale
 
 
 def compile_sc(
-    _dir,
+    output_folder: Path,
     file_info: FileInfo,
-    sheets: Optional[List[Image.Image]] = None,
-    output_folder: Optional[str] = None,
+    sheets: List[Image.Image],
 ):
-    name = _dir.split("/")[-2]
-
-    if sheets:
-        files = sheets
-    else:
-        files = []
-        [files.append(i) if i.endswith(".png") else None for i in os.listdir(_dir)]
-        files.sort()
-        if not files:
-            return logger.info(locale.dir_empty % _dir.split("/")[-2])
-        files = [Image.open(f"{_dir}{i}") for i in files]
-
     sc = Writer()
 
-    for picture_index in range(len(files)):
+    for picture_index in range(len(sheets)):
         sheet_info = file_info.sheets[picture_index]
-        img = files[picture_index]
+        sheet = sheets[picture_index]
 
         file_type = sheet_info.file_type
         pixel_type = sheet_info.pixel_type
 
-        if img.size != sheet_info.size:
+        if sheet.size != sheet_info.size:
             logger.info(
                 locale.illegal_size
-                % (sheet_info.width, sheet_info.height, img.width, img.height)
+                % (sheet_info.width, sheet_info.height, sheet.width, sheet.height)
             )
 
             if Console.question(locale.resize_qu):
                 logger.info(locale.resizing)
-                img = img.resize(sheet_info.size, Image.ANTIALIAS)
+                sheet = sheet.resize(sheet_info.size, Image.ANTIALIAS)
 
-        width, height = img.size
+        width, height = sheet.size
         pixel_size = get_pixel_size(pixel_type)
 
         file_size = width * height * pixel_size + 5
 
-        logger.info(locale.about_sc % (name, picture_index, pixel_type, width, height))
+        logger.info(
+            locale.about_sc % (file_info.name, picture_index, pixel_type, width, height)
+        )
 
         sc.write(struct.pack("<BIBHH", file_type, file_size, pixel_type, width, height))
 
         if file_type in (27, 28):
-            split_image(img)
+            split_image(sheet)
 
-        save_texture(sc, img, pixel_type)
+        save_texture(sc, sheet, pixel_type)
         print()
 
     sc.write(bytes(5))
 
-    write_sc(f"{output_folder}/{name}.sc", sc.getvalue(), file_info.use_lzham)
+    write_sc(output_folder / f"{file_info.name}.sc", sc.getvalue(), file_info.use_lzham)

@@ -64,7 +64,9 @@ def refill_menu():
         import sc_compression
 
         del sc_compression
-
+    except ImportError:
+        logger.warning(locale.install_to_unlock % "sc-compression")
+    else:
         from system.lib.features.csv.compress import compress_csv
         from system.lib.features.csv.decompress import decompress_csv
 
@@ -72,15 +74,17 @@ def refill_menu():
             import PIL
 
             del PIL
-
-            from system.lib.features.sc.assembly_encode import (
-                collect_objects_and_encode,
-            )
+        except ImportError:
+            logger.warning(locale.install_to_unlock % "PILLOW")
+        else:
             from system.lib.features.sc.decode import (
                 decode_and_render_objects,
                 decode_textures_only,
             )
-            from system.lib.features.sc.encode import sc_encode
+            from system.lib.features.sc.encode import (
+                collect_objects_and_encode,
+                encode_textures_only,
+            )
 
             sc_category = Menu.Category(0, locale.sc_label)
             sc_category.add(
@@ -89,7 +93,9 @@ def refill_menu():
                 )
             )
             sc_category.add(
-                Menu.Item(locale.encode_sc, locale.encode_sc_description, sc_encode)
+                Menu.Item(
+                    locale.encode_sc, locale.encode_sc_description, encode_textures_only
+                )
             )
             sc_category.add(
                 Menu.Item(
@@ -113,8 +119,6 @@ def refill_menu():
                 )
             )
             menu.add_category(sc_category)
-        except ImportError:
-            logger.warning(locale.install_to_unlock % "PILLOW")
 
         csv_category = Menu.Category(1, locale.csv_label)
         csv_category.add(
@@ -128,8 +132,6 @@ def refill_menu():
             )
         )
         menu.add_category(csv_category)
-    except ImportError:
-        logger.warning(locale.install_to_unlock % "sc-compression")
 
     other = Menu.Category(10, locale.other_features_label)
     other.add(

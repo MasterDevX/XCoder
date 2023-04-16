@@ -8,10 +8,14 @@ from system.lib.features.cut_sprites import render_objects
 from system.lib.swf import SupercellSWF
 from system.localization import locale
 
+IN_COMPRESSED_PATH = Path("./SC/In-Compressed")
+OUT_DECOMPRESSED = Path("./SC/Out-Decompressed")
+OUT_SPRITES_PATH = Path("./SC/Out-Sprites")
+
 
 def decode_textures_only():
-    input_folder = Path("./SC/In-Compressed")
-    output_folder = Path("./SC/Out-Decompressed")
+    input_folder = IN_COMPRESSED_PATH
+    output_folder = OUT_DECOMPRESSED
 
     files = os.listdir(input_folder)
     for file in files:
@@ -50,8 +54,8 @@ def decode_textures_only():
 
 
 def decode_and_render_objects():
-    input_folder = Path("./SC/In-Compressed")
-    output_folder = Path("./SC/Out-Sprites")
+    input_folder = IN_COMPRESSED_PATH
+    output_folder = OUT_SPRITES_PATH
     files = os.listdir(input_folder)
 
     for file in files:
@@ -62,7 +66,7 @@ def decode_and_render_objects():
             base_name = os.path.basename(file).rsplit(".", 1)[0]
 
             swf = SupercellSWF()
-            texture_loaded, use_lzham = swf.load(f"{input_folder}/{file}")
+            texture_loaded, use_lzham = swf.load(input_folder / file)
             if not texture_loaded:
                 logger.error(locale.not_found % f"{base_name}_tex.sc")
                 continue
@@ -105,13 +109,13 @@ def _save_textures(swf: SupercellSWF, textures_output: Path, base_name: str) -> 
     os.makedirs(textures_output, exist_ok=True)
     for img_index in range(len(swf.textures)):
         filename = base_name + "_" * img_index
-        swf.textures[img_index].image.save(f"{textures_output / filename}.png")
+        swf.textures[img_index].image.save(textures_output / f"{filename}.png")
 
 
 def _save_meta_file(
     swf: SupercellSWF, objects_output_folder: Path, base_name: str, use_lzham: bool
 ) -> None:
-    with open(f"{objects_output_folder/base_name}.xcod", "wb") as xcod_file:
+    with open(objects_output_folder / f"{base_name}.xcod", "wb") as xcod_file:
         xcod_file.write(b"XCOD")
         xcod_file.write(bool.to_bytes(use_lzham, 1, "big"))
         xcod_file.write(int.to_bytes(len(swf.textures), 1, "big"))

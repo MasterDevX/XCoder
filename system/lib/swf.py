@@ -51,11 +51,11 @@ class SupercellSWF:
         self._matrix_banks: List[MatrixBank] = []
         self._matrix_bank: MatrixBank
 
-    def load(self, filepath: str) -> Tuple[bool, bool]:
-        self._filepath = filepath
+    def load(self, filepath: str | os.PathLike) -> Tuple[bool, bool]:
+        self._filepath = str(filepath)
 
         texture_loaded, use_lzham = self._load_internal(
-            filepath, filepath.endswith("_tex.sc")
+            self._filepath, self._filepath.endswith("_tex.sc")
         )
 
         if not texture_loaded:
