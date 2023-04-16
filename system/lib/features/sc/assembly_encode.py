@@ -7,7 +7,7 @@ from system.lib.features.sc import compile_sc
 from system.localization import locale
 
 
-def sc1_encode(overwrite: bool = False):
+def collect_objects_and_encode(overwrite: bool = False):
     folder = "./SC/In-Sprites/"
     output_folder = "./SC/Out-Compressed/"
     files = os.listdir(folder)
@@ -18,11 +18,10 @@ def sc1_encode(overwrite: bool = False):
             logger.error(locale.not_found % xcod)
         else:
             try:
-                logger.info(locale.dec_sc)
+                logger.info(locale.collecting_inf % file)
                 sheets, file_info = place_sprites(
                     f"{folder}{file}/{xcod}", f"{folder}{file}", overwrite
                 )
-                logger.info(locale.dec_sc)
                 compile_sc(f"{folder}{file}/", file_info, sheets, output_folder)
             except Exception as exception:
                 logger.exception(

@@ -39,12 +39,12 @@ class SupercellSWF:
         self._lowres_suffix: str = DEFAULT_LOWRES_SUFFIX
         self._highres_suffix: str = DEFAULT_HIGHRES_SUFFIX
 
-        self._shape_count: int
-        self._movie_clip_count: int
-        self._texture_count: int
-        self._text_field_count: int
+        self._shape_count: int = 0
+        self._movie_clip_count: int = 0
+        self._texture_count: int = 0
+        self._text_field_count: int = 0
 
-        self._export_count: int
+        self._export_count: int = 0
         self._export_ids: List[int] = []
         self._export_names: List[str] = []
 
@@ -69,14 +69,16 @@ class SupercellSWF:
 
         return texture_loaded, use_lzham
 
-    def _load_internal(self, filepath: str, is_texture: bool) -> Tuple[bool, bool]:
+    def _load_internal(self, filepath: str, is_texture_file: bool) -> Tuple[bool, bool]:
         self.filename = os.path.basename(filepath)
+
+        logger.info(locale.collecting_inf % self.filename)
 
         decompressed_data, use_lzham = open_sc(filepath)
         self.reader = Reader(decompressed_data)
         del decompressed_data
 
-        if not is_texture:
+        if not is_texture_file:
             self._shape_count = self.reader.read_ushort()
             self._movie_clip_count = self.reader.read_ushort()
             self._texture_count = self.reader.read_ushort()
@@ -108,7 +110,7 @@ class SupercellSWF:
             for _ in range(self._export_count):
                 self._export_names.append(self.reader.read_string())
 
-        loaded = self._load_tags()
+        loaded = self._load_tags(is_texture_file)
 
         for i in range(self._export_count):
             export_id = self._export_ids[i]
@@ -119,10 +121,9 @@ class SupercellSWF:
             )
             movie_clip.export_name = export_name
 
-        print()
         return loaded, use_lzham
 
-    def _load_tags(self):
+    def _load_tags(self, is_texture_file: bool) -> bool:
         has_texture = True
 
         texture_id = 0
@@ -137,6 +138,11 @@ class SupercellSWF:
             if tag == 0:
                 return has_texture
             elif tag in SupercellSWF.TEXTURES_TAGS:
+                # this is done to avoid loading the data file
+                # (although it does not affect the speed)
+                if is_texture_file and texture_id >= len(self.textures):
+                    self.textures.append(SWFTexture())
+
                 texture = self.textures[texture_id]
                 texture.load(self, tag, has_texture)
 
@@ -151,13 +157,11 @@ class SupercellSWF:
                             texture.height,
                         )
                     )
-                    print()
 
                     self.xcod_writer.write_ubyte(tag)
                     self.xcod_writer.write_ubyte(texture.pixel_type)
                     self.xcod_writer.write_uint16(texture.width)
                     self.xcod_writer.write_uint16(texture.height)
-                self.textures[texture_id] = texture
                 texture_id += 1
             elif tag in SupercellSWF.SHAPES_TAGS:
                 self.shapes[shapes_loaded].load(self, tag)

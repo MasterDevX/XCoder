@@ -78,7 +78,6 @@ class Locale:
         self.cut_sprites_process: Optional[str] = None
         self.place_sprites_process: Optional[str] = None
         self.not_implemented: Optional[str] = None
-        self.dec_sc: Optional[str] = None
         self.error: Optional[str] = None
 
         # new

@@ -1,7 +1,5 @@
-import struct
-
 from loguru import logger
-from sc_compression import decompress, compress
+from sc_compression import compress, decompress
 from sc_compression.signatures import Signatures
 
 from system.localization import locale
@@ -13,7 +11,8 @@ def write_sc(output_filename: str, buffer: bytes, use_lzham: bool):
 
         if use_lzham:
             logger.info(locale.compressing_with % "LZHAM")
-            file_out.write(struct.pack("<4sBI", b"SCLZ", 18, len(buffer)))
+            # Why is this here? It's included in the compression module
+            # file_out.write(struct.pack("<4sBI", b"SCLZ", 18, len(buffer)))
             compressed = compress(buffer, Signatures.SCLZ)
 
             file_out.write(compressed)
@@ -24,11 +23,9 @@ def write_sc(output_filename: str, buffer: bytes, use_lzham: bool):
         logger.info(locale.compression_done)
 
 
-def open_sc(input_filename: str):
-    decompressed_data = None
+def open_sc(input_filename: str) -> tuple[bytes, bool]:
     use_lzham = False
 
-    logger.info(locale.collecting_inf)
     with open(input_filename, "rb") as f:
         file_data = f.read()
         f.close()
@@ -37,9 +34,10 @@ def open_sc(input_filename: str):
         if b"START" in file_data:
             file_data = file_data[: file_data.index(b"START")]
         decompressed_data, signature = decompress(file_data)
-        #
-        # logger.info(locale.detected_comp % signature.upper())
-        #
+
+        if signature.name != Signatures.NONE:
+            logger.info(locale.detected_comp % signature.name.upper())
+
         if signature == Signatures.SCLZ:
             use_lzham = True
     except TypeError:

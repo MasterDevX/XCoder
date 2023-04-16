@@ -31,15 +31,11 @@ def compile_sc(
             return logger.info(locale.dir_empty % _dir.split("/")[-2])
         files = [Image.open(f"{_dir}{i}") for i in files]
 
-    logger.info(locale.collecting_inf)
     sc = Writer()
-
-    use_lzham = file_info.use_lzham
 
     for picture_index in range(len(files)):
         sheet_info = file_info.sheets[picture_index]
         img = files[picture_index]
-        print()
 
         file_type = sheet_info.file_type
         pixel_type = sheet_info.pixel_type
@@ -67,8 +63,8 @@ def compile_sc(
             split_image(img)
 
         save_texture(sc, img, pixel_type)
+        print()
 
     sc.write(bytes(5))
-    print()
 
-    write_sc(f"{output_folder}/{name}.sc", sc.getvalue(), use_lzham)
+    write_sc(f"{output_folder}/{name}.sc", sc.getvalue(), file_info.use_lzham)

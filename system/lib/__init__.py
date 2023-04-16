@@ -1,16 +1,16 @@
 import sys
 import time
 
+from loguru import logger
+
 from system import clear
 from system.lib.config import config
 from system.lib.console import Console
 from system.lib.features.directories import clear_directories
 from system.lib.features.initialization import initialize
-from system.lib.features.update.check import check_update, check_for_outdated, get_tags
-from system.lib.menu import menu, Menu
+from system.lib.features.update.check import check_for_outdated, check_update, get_tags
+from system.lib.menu import Menu, menu
 from system.localization import locale
-
-from loguru import logger
 
 logger.remove()
 logger.add(
@@ -73,14 +73,20 @@ def refill_menu():
 
             del PIL
 
-            from system.lib.features.sc.decode import sc_decode
+            from system.lib.features.sc.assembly_encode import (
+                collect_objects_and_encode,
+            )
+            from system.lib.features.sc.decode import (
+                decode_and_render_objects,
+                decode_textures_only,
+            )
             from system.lib.features.sc.encode import sc_encode
-            from system.lib.features.sc.decode_and_cut import decode_and_cut
-            from system.lib.features.sc.assembly_encode import sc1_encode
 
             sc_category = Menu.Category(0, locale.sc_label)
             sc_category.add(
-                Menu.Item(locale.decode_sc, locale.decode_sc_description, sc_decode)
+                Menu.Item(
+                    locale.decode_sc, locale.decode_sc_description, decode_textures_only
+                )
             )
             sc_category.add(
                 Menu.Item(locale.encode_sc, locale.encode_sc_description, sc_encode)
@@ -89,21 +95,21 @@ def refill_menu():
                 Menu.Item(
                     locale.decode_by_parts,
                     locale.decode_by_parts_description,
-                    decode_and_cut,
+                    decode_and_render_objects,
                 )
             )
             sc_category.add(
                 Menu.Item(
                     locale.encode_by_parts,
                     locale.encode_by_parts_description,
-                    sc1_encode,
+                    collect_objects_and_encode,
                 )
             )
             sc_category.add(
                 Menu.Item(
                     locale.overwrite_by_parts,
                     locale.overwrite_by_parts_description,
-                    lambda: sc1_encode(True),
+                    lambda: collect_objects_and_encode(True),
                 )
             )
             menu.add_category(sc_category)
