@@ -93,7 +93,7 @@ def decode_and_render_objects():
         print()
 
 
-def get_file_basename(swf):
+def get_file_basename(swf: SupercellSWF):
     return os.path.basename(swf.filename).rsplit(".", 1)[0]
 
 

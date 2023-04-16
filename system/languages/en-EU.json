@@ -53,7 +53,7 @@
     "decompression_error": "Error while decompressing! Trying to decode as is...",
     "skip_not_installed": "%s isn't installed! Reinitialize",
     "detected_comp": "%s compression detected",
-    "unk_type": "Unknown pixel type: %s",
+    "unknown_pixel_type": "Unknown pixel type: %s",
     "crt_pic": "Creating picture...",
     "join_pic": "Joining picture...",
     "png_save": "Saving to png...",

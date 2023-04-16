@@ -1,5 +1,5 @@
 from math import ceil
-from typing import List, Optional, Tuple
+from typing import TYPE_CHECKING, List, Tuple
 
 from PIL import Image
 
@@ -8,11 +8,14 @@ from system.lib.helper import get_size
 from system.lib.matrices.matrix_bank import MatrixBank
 from system.lib.objects.shape import Shape
 
+if TYPE_CHECKING:
+    from system.lib.swf import SupercellSWF
+
 
 class MovieClipFrame:
     def __init__(self):
         self._elements_count: int = 0
-        self._label: Optional[str] = None
+        self._label: str | None = None
 
         self._elements: List[Tuple[int, int, int]] = []
 
@@ -38,7 +41,7 @@ class MovieClip:
         super().__init__()
 
         self.id = -1
-        self.export_name: Optional[str] = None
+        self.export_name: str | None = None
         self.fps: int = 30
         self.frames_count: int = 0
         self.frames: List[MovieClipFrame] = []
@@ -47,7 +50,7 @@ class MovieClip:
         self.binds: List[int] = []
         self.matrix_bank_index: int = 0
 
-    def load(self, swf, tag: int):
+    def load(self, swf: "SupercellSWF", tag: int):
         self.id = swf.reader.read_ushort()
 
         self.fps = swf.reader.read_char()
@@ -106,8 +109,8 @@ class MovieClip:
             else:
                 swf.reader.read(frame_length)
 
-    def render(self, swf, matrix=None) -> Image.Image:
-        matrix_bank: MatrixBank = swf.get_matrix_bank(self.matrix_bank_index)
+    def render(self, swf: "SupercellSWF", matrix=None) -> Image.Image:
+        matrix_bank = swf.get_matrix_bank(self.matrix_bank_index)
 
         # TODO: make it faster
         left, top, right, bottom = self.get_sides(swf)
@@ -136,7 +139,7 @@ class MovieClip:
 
         return image
 
-    def get_sides(self, swf) -> Tuple[float, float, float, float]:
+    def get_sides(self, swf: "SupercellSWF") -> Tuple[float, float, float, float]:
         matrix_bank: MatrixBank = swf.get_matrix_bank(self.matrix_bank_index)
 
         left = 0

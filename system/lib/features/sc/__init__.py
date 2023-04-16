@@ -8,7 +8,7 @@ from PIL import Image
 from system.bytestream import Writer
 from system.lib.console import Console
 from system.lib.features.files import write_sc
-from system.lib.images import get_pixel_size, save_texture, split_image
+from system.lib.images import get_byte_count_by_pixel_type, save_texture, split_image
 from system.lib.xcod import FileInfo
 from system.localization import locale
 
@@ -38,7 +38,7 @@ def compile_sc(
                 sheet = sheet.resize(sheet_info.size, Image.ANTIALIAS)
 
         width, height = sheet.size
-        pixel_size = get_pixel_size(pixel_type)
+        pixel_size = get_byte_count_by_pixel_type(pixel_type)
 
         file_size = width * height * pixel_size + 5
 

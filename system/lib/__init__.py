@@ -89,33 +89,37 @@ def refill_menu():
             sc_category = Menu.Category(0, locale.sc_label)
             sc_category.add(
                 Menu.Item(
-                    locale.decode_sc, locale.decode_sc_description, decode_textures_only
+                    name=locale.decode_sc,
+                    description=locale.decode_sc_description,
+                    handler=decode_textures_only,
                 )
             )
             sc_category.add(
                 Menu.Item(
-                    locale.encode_sc, locale.encode_sc_description, encode_textures_only
+                    name=locale.encode_sc,
+                    description=locale.encode_sc_description,
+                    handler=encode_textures_only,
                 )
             )
             sc_category.add(
                 Menu.Item(
-                    locale.decode_by_parts,
-                    locale.decode_by_parts_description,
-                    decode_and_render_objects,
+                    name=locale.decode_by_parts,
+                    description=locale.decode_by_parts_description,
+                    handler=decode_and_render_objects,
                 )
             )
             sc_category.add(
                 Menu.Item(
-                    locale.encode_by_parts,
-                    locale.encode_by_parts_description,
-                    collect_objects_and_encode,
+                    name=locale.encode_by_parts,
+                    description=locale.encode_by_parts_description,
+                    handler=collect_objects_and_encode,
                 )
             )
             sc_category.add(
                 Menu.Item(
-                    locale.overwrite_by_parts,
-                    locale.overwrite_by_parts_description,
-                    lambda: collect_objects_and_encode(True),
+                    name=locale.overwrite_by_parts,
+                    description=locale.overwrite_by_parts_description,
+                    handler=lambda: collect_objects_and_encode(True),
                 )
             )
             menu.add_category(sc_category)
@@ -123,48 +127,58 @@ def refill_menu():
         csv_category = Menu.Category(1, locale.csv_label)
         csv_category.add(
             Menu.Item(
-                locale.decompress_csv, locale.decompress_csv_description, decompress_csv
+                name=locale.decompress_csv,
+                description=locale.decompress_csv_description,
+                handler=decompress_csv,
             )
         )
         csv_category.add(
             Menu.Item(
-                locale.compress_csv, locale.compress_csv_description, compress_csv
+                name=locale.compress_csv,
+                description=locale.compress_csv_description,
+                handler=compress_csv,
             )
         )
         menu.add_category(csv_category)
 
     other = Menu.Category(10, locale.other_features_label)
     other.add(
-        Menu.Item(locale.check_update, locale.version % config.version, check_update)
+        Menu.Item(
+            name=locale.check_update,
+            description=locale.version % config.version,
+            handler=check_update,
+        )
     )
-    other.add(Menu.Item(locale.check_for_outdated, None, check_for_outdated))
+    other.add(Menu.Item(name=locale.check_for_outdated, handler=check_for_outdated))
     other.add(
         Menu.Item(
-            locale.reinit,
-            locale.reinit_description,
-            lambda: (initialize(), refill_menu()),
+            name=locale.reinit,
+            description=locale.reinit_description,
+            handler=lambda: (initialize(), refill_menu()),
         )
     )
     other.add(
         Menu.Item(
-            locale.change_language,
-            locale.change_lang_description % config.language,
-            lambda: (config.change_language(locale.change()), refill_menu()),
+            name=locale.change_language,
+            description=locale.change_lang_description % config.language,
+            handler=lambda: (config.change_language(locale.change()), refill_menu()),
         )
     )
     other.add(
         Menu.Item(
-            locale.clear_directories,
-            locale.clean_dirs_description,
-            lambda: clear_directories() if Console.question(locale.clear_qu) else -1,
+            name=locale.clear_directories,
+            description=locale.clean_dirs_description,
+            handler=lambda: clear_directories()
+            if Console.question(locale.clear_qu)
+            else -1,
         )
     )
     other.add(
         Menu.Item(
-            locale.toggle_update_auto_checking,
-            locale.enabled if config.auto_update else locale.disabled,
-            lambda: (config.toggle_auto_update(), refill_menu()),
+            name=locale.toggle_update_auto_checking,
+            description=locale.enabled if config.auto_update else locale.disabled,
+            handler=lambda: (config.toggle_auto_update(), refill_menu()),
         )
     )
-    other.add(Menu.Item(locale.exit, None, lambda: (clear(), exit())))
+    other.add(Menu.Item(name=locale.exit, handler=lambda: (clear(), exit())))
     menu.add_category(other)

@@ -1,5 +1,5 @@
 from math import atan2, ceil, degrees
-from typing import List, Optional, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from PIL import Image, ImageDraw
 
@@ -8,13 +8,16 @@ from system.lib.matrices.matrix2x3 import Matrix2x3
 from system.lib.objects.point import Point
 from system.lib.objects.texture import SWFTexture
 
+if TYPE_CHECKING:
+    from system.lib.swf import SupercellSWF
+
 
 class Shape:
     def __init__(self):
         self.id = 0
         self.regions: List[Region] = []
 
-    def load(self, swf, tag: int):
+    def load(self, swf: "SupercellSWF", tag: int):
         self.id = swf.reader.read_ushort()
 
         swf.reader.read_ushort()  # regions_count
@@ -96,9 +99,9 @@ class Region:
         self._uv_points: List[Point] = []
         self._transformed_points: List[Point] = []
 
-        self.texture: Optional[SWFTexture]
+        self.texture: SWFTexture
 
-    def load(self, swf, tag: int):
+    def load(self, swf: "SupercellSWF", tag: int):
         self.texture_index = swf.reader.read_uchar()
 
         self.texture = swf.textures[self.texture_index]
@@ -169,7 +172,9 @@ class Region:
         width, height = max(width, 1), max(height, 1)
         if width + height == 1:  # The same speed as without this return
             return Image.new(
-                "RGBA", (width, height), color=self.texture.image.get_pixel(left, top)
+                "RGBA",
+                (width, height),
+                color=self.texture.image.get_pixel(left, top),  # type: ignore
             )
 
         if width == 1:
@@ -243,7 +248,7 @@ class Region:
         self,
         round_to_nearest: bool = False,
         custom_points: Optional[List[Point]] = None,
-    ) -> (int, bool):
+    ) -> tuple[int, bool]:
         """Calculates rotation and if region is mirrored.
 
         :param round_to_nearest: should round to a multiple of 90
@@ -286,4 +291,4 @@ class Region:
         if round_to_nearest:
             angle = round(angle / 90) * 90
 
-        return angle, mirroring
+        return int(angle), mirroring
