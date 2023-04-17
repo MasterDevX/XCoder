@@ -1,0 +1,6 @@
+sc-compression
+colorama
+pylzham
+zstandard
+pillow
+loguru

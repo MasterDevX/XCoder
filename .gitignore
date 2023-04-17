@@ -1,0 +1,15 @@
+# IDE project files
+/.idea/
+/venv/
+
+# Script folders
+/updates/
+/logs/
+/CSV/
+/SC/
+
+# Configuration files
+system/config.json
+
+# Python compiled files
+*.pyc
